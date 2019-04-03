@@ -35,10 +35,11 @@ VertexOut main(VertexIn vin)
 	//vout.POSITION_HW	= mul( POSITION_LT, WVP );
 	vout.POSITION_HW = mul(  WVP , POSITION_LT);
 
-	//float4 NORMAL_H = float4(vin.NORMAL_L, 1);
-	//float4 NORMAL_LT	= mul(NORMAL_H, TRANSFORM);
-	float4 NORMAL_LT = float4(vin.NORMAL_L, 1);
-	float4 NORMAL_WT = mul(NORMAL_LT, WT);
+	float4 NORMAL_H = float4(vin.NORMAL_L, 1);
+	float4 NORMAL_LT	= mul(TRANSFORM, NORMAL_H);
+	//float4 NORMAL_LT = float4(vin.NORMAL_L, 1);
+	float4 NORMAL_WT = mul( WT, NORMAL_LT);
+
 	vout.NORMAL_W		= float3(NORMAL_WT.x, NORMAL_WT.y, NORMAL_WT.z);
 
 	return vout;

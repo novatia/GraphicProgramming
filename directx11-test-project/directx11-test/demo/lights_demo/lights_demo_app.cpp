@@ -220,11 +220,17 @@ void LightDemoApp::InitMeshes()
 
 void LightDemoApp::InitLightsAndMaterials() {
 	//RED
+	XMMATRIX WVP = GetWVPXMMATRIX();
+
 	d1.ambient	= XMFLOAT4(1.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f);
 	d1.diffuse	= XMFLOAT4(128.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f);
 	d1.specular = XMFLOAT4(255.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f);
-	d1.dirW		= XMFLOAT3(-1,-1,0);
+
+	XMVECTOR dirW = XMVector3Transform(XMVectorSet(-1, -1, 0, 1), WVP) ;
+
+	XMStoreFloat3( &d1.dirW, dirW );
 	
+
 	//GREEN
 	s1.ambient		= XMFLOAT4(0.0f / 255.0f, 55.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f);
 	s1.attenuation	= XMFLOAT3(0.1f,0.1f,0.1f);
@@ -341,6 +347,20 @@ void LightDemoApp::InitBuffers()
 	psRarelyConstantBufferDesc.MiscFlags = 0;
 	psRarelyConstantBufferDesc.StructureByteStride = 0;
 	XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&psRarelyConstantBufferDesc, nullptr, &m_psRarelyConstantBuffer));
+
+
+	{
+		//PS UPDATE CONSTANT BUFFER DATA RARELY CHANGING
+		D3D11_MAPPED_SUBRESOURCE psRarelyResource;
+		ZeroMemory(&psRarelyResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+		XTEST_D3D_CHECK(m_d3dContext->Map(m_psRarelyConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &psRarelyResource));
+		RarelyChangedCB* psRarelyConstantBufferData = (RarelyChangedCB*)psRarelyResource.pData;
+		XMStoreFloat4(&psRarelyConstantBufferData->useDPSLight, XMVectorSet(directionalIsOn, pointIsOn, spotIsOn, 0));
+		m_d3dContext->Unmap(m_psRarelyConstantBuffer.Get(), 0);
+	}
+
+	m_d3dContext->PSSetConstantBuffers(PS_RARELY_CONSTANT_BUFFER_REGISTER, 1, m_psRarelyConstantBuffer.GetAddressOf());
+
 }
 
 void LightDemoApp::InitRasterizerState()
@@ -487,8 +507,8 @@ void LightDemoApp::UpdateScene(float deltaSeconds)
 	XMMATRIX W = GetWXMMATRIX();
 
 	XMVECTOR eyePosL = XMVectorSet(m_camera.GetPosition().x, m_camera.GetPosition().y, m_camera.GetPosition().z, 1);
-	XMVECTOR eyePosW = XMVector4Transform(eyePosL, WVP);
-
+    XMVECTOR eyePosW = XMVector4Transform(eyePosL, WVP);
+	//XMVECTOR eyePosW = eyePosL;
 	m_d3dAnnotation->BeginEvent(L"update-constant-buffer");
 
 	

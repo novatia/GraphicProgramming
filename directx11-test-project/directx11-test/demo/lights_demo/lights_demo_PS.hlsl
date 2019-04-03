@@ -102,6 +102,7 @@ float4 main( VertexOut pin ) : SV_Target
 	pin.NORMAL_W = normalize(pin.NORMAL_W);
 
 	float3 toEyeW = float3( pin.POSITION_HW.x, pin.POSITION_HW.y, pin.POSITION_HW.z) - eyePosW;
+	//float3 toEyeW = float3(0.f, 0.f, 0.f);
 
 	float4 totalAmbient  = float4(0.f, 0.f, 0.f, 0.f);
 	float4 totalDiffuse  = float4(0.f, 0.f, 0.f, 0.f);
