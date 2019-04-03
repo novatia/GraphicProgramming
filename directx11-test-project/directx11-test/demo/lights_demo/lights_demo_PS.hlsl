@@ -36,9 +36,9 @@ cbuffer PerObjectCB : register(b0)
 	float4x4 W;
 	float4x4 WT;
 	float4x4 WVP;
+	float4x4 transform;
 	Material material;
 };
-
 
 cbuffer PerFrameCB : register(b1)
 {
@@ -47,7 +47,6 @@ cbuffer PerFrameCB : register(b1)
 	SpotLight s;
 	float3 eyePosW;
 };
-
 
 cbuffer RarelyChangedCB : register(b2)
 {
@@ -60,7 +59,6 @@ struct VertexOut
 {
 	float4 POSITION_HW :SV_POSITION;
 	float3 NORMAL_W :NORMAL;
-	float4 COLOR: COLOR;
 };
 
 void SpotLightContribution(Material mat, SpotLight light, float3 normalW, float3 toEyeW, out float4 ambient, out float4 diffuse, out float4 specular) 
@@ -113,27 +111,37 @@ float4 main( VertexOut pin ) : SV_Target
 	float4 diffuse;
 	float4 specular;
 
-	DirectionalLightContribution( material, d, pin.NORMAL_W, toEyeW, ambient, diffuse, specular);
+	if (useDLight) {
+		DirectionalLightContribution(material, d, pin.NORMAL_W, toEyeW, ambient, diffuse, specular);
 
-	totalAmbient += ambient;
-	totalDiffuse += diffuse;
-	totalSpecular += specular;
+		totalAmbient += ambient;
+		totalDiffuse += diffuse;
+		totalSpecular += specular;
+	}
 
+	if (useSLight) {
+		SpotLightContribution(material, s, pin.NORMAL_W, toEyeW, ambient, diffuse, specular);
 
-	SpotLightContribution(material, s, pin.NORMAL_W, toEyeW, ambient, diffuse, specular);
+		totalAmbient += ambient;
+		totalDiffuse += diffuse;
+		totalSpecular += specular;
+	}
 
-	totalAmbient += ambient;
-	totalDiffuse += diffuse;
-	totalSpecular += specular;
+	if (usePLight) {
+		PointLightContribution(material, p, pin.NORMAL_W, toEyeW, ambient, diffuse, specular);
 
-	PointLightContribution(material, p, pin.NORMAL_W, toEyeW, ambient, diffuse, specular);
-
-	totalAmbient += ambient;
-	totalDiffuse += diffuse;
-	totalSpecular += specular;
+		totalAmbient += ambient;
+		totalDiffuse += diffuse;
+		totalSpecular += specular;
+	}
 
 	float4 finalColor = totalAmbient + totalDiffuse + totalSpecular;
+
+
+
 	finalColor.a = totalDiffuse.a;
 
+	//return finalColor;
+	//return material.diffuse;
 	return finalColor;
 }

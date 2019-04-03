@@ -121,6 +121,7 @@ namespace xtest {
 				DirectX::XMFLOAT4X4 W;
 				DirectX::XMFLOAT4X4 WT;
 				DirectX::XMFLOAT4X4 WVP;
+				DirectX::XMFLOAT4X4 transform;
 				Nova3DMaterial material;
 			};
 
@@ -142,7 +143,12 @@ namespace xtest {
 			SpotLight s1;
 			PointLight p1;
 
+			bool spotIsOn = true;
+			bool directionalIsOn = true;
+			bool pointIsOn = true;
+
 			Nova3DMaterial metal;
+			Nova3DMaterial concrete;
 
 			LightDemoApp(HINSTANCE instance, const application::WindowSettings& windowSettings, const application::DirectxSettings& directxSettings, uint32 fps = 60);
 			~LightDemoApp();
@@ -161,10 +167,7 @@ namespace xtest {
 			virtual void OnWheelScroll(input::ScrollStatus scroll) override;
 			virtual void OnMouseMove(const DirectX::XMINT2& movement, const DirectX::XMINT2& currentPos) override;
 			virtual void OnKeyStatusChange(input::Key key, const input::KeyStatus& status) override;
-
-			DirectX::XMFLOAT4 calcBlinnPhongLighting(Nova3DMaterial M, DirectX::XMFLOAT4 LColor, DirectX::XMFLOAT3 N, DirectX::XMFLOAT3 L, DirectX::XMFLOAT3 H);
-			DirectX::XMFLOAT4 PhongLighting(Nova3DMaterial M, DirectX::XMFLOAT4 LColor, DirectX::XMFLOAT3  N, DirectX::XMFLOAT3  L, DirectX::XMFLOAT3  V, DirectX::XMFLOAT3  R);
-
+		
 		private:
 			void InitLightsAndMaterials();
 			void InitMeshes();
@@ -172,6 +175,10 @@ namespace xtest {
 			void InitShaders();
 			void InitBuffers();
 			void InitRasterizerState();
+
+			DirectX::XMMATRIX GetWVPXMMATRIX();
+			DirectX::XMMATRIX GetWTXMMATRIX();
+			DirectX::XMMATRIX GetWXMMATRIX();
 
 			DirectX::XMFLOAT4X4 m_viewMatrix;
 			DirectX::XMFLOAT4X4 m_worldMatrix;
@@ -182,9 +189,7 @@ namespace xtest {
 			Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;
 
-
 			Microsoft::WRL::ComPtr<ID3D11Buffer> m_vsConstantBuffer;
-			Microsoft::WRL::ComPtr<ID3D11Buffer> m_psPerObjConstantBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> m_psPerFrameConstantBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> m_psRarelyConstantBuffer;
 

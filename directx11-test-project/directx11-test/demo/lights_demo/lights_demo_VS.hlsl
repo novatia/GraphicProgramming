@@ -9,9 +9,8 @@ cbuffer PerObjectCB : register(b0)
 	float4x4 W;
 	float4x4 WT;
 	float4x4 WVP;
-	Material material;
+	float4x4 TRANSFORM;
 };
-
 
 struct VertexIn
 {
@@ -24,15 +23,23 @@ struct VertexIn
 struct VertexOut
 {
 	float4 POSITION_HW :SV_POSITION;
-	float4 NORMAL_W :NORMAL;
+	float3 NORMAL_W :NORMAL;
 };
 
 VertexOut main(VertexIn vin)
 {
 	VertexOut vout;
+	float4 POSITION_H = float4(vin.POSITION_L, 1);
 
-	vout.POSITION_HW = mul(float4(vin.POSITION_L,1), WVP);
-	vout.NORMAL_W = mul(float4(vin.NORMAL_L, 1), WT );
-	
+	float4 POSITION_LT	= mul(TRANSFORM,POSITION_H);
+	//vout.POSITION_HW	= mul( POSITION_LT, WVP );
+	vout.POSITION_HW = mul(  WVP , POSITION_LT);
+
+	//float4 NORMAL_H = float4(vin.NORMAL_L, 1);
+	//float4 NORMAL_LT	= mul(NORMAL_H, TRANSFORM);
+	float4 NORMAL_LT = float4(vin.NORMAL_L, 1);
+	float4 NORMAL_WT = mul(NORMAL_LT, WT);
+	vout.NORMAL_W		= float3(NORMAL_WT.x, NORMAL_WT.y, NORMAL_WT.z);
+
 	return vout;
 }
