@@ -14,102 +14,39 @@ namespace xtest {
 			Nova3DObject m_cube;
 			Nova3DObject m_plane;
 
-			/*struct DirectionalLight {
-					float4 ambient;
-					float4 diffuse;
-					float4 specular;
-					float3 dirW;
-				};
-
-				16byte
-			*/
 			struct DirectionalLight
 			{
 				DirectX::XMFLOAT4 ambient;
 				DirectX::XMFLOAT4 diffuse;
 				DirectX::XMFLOAT4 specular;
-
-				DirectX::XMFLOAT3 dirW;
-				float _explicit_pad_1;
+				DirectX::XMFLOAT4 dirW;
 			};
-
-
-			/*struct SpotLight {
-				float4 ambient;
-				float4 diffuse;
-				float4 specular;
-				float3 posW;
-				float range;
-				float3 dirW;
-				float spot;
-				float3 attenuation;
-
-				24byte
-			};*/
+		
 			struct SpotLight
 			{
 				DirectX::XMFLOAT4 ambient;
 				DirectX::XMFLOAT4 diffuse;
 				DirectX::XMFLOAT4 specular;
-				
-				DirectX::XMFLOAT3 posW;
-				float _explicit_pad_1;
-				
-				float range;
-				float _explicit_pad_2;
-				float _explicit_pad_3;
-				float _explicit_pad_4;
-				
-				DirectX::XMFLOAT3 dirW;
-				float _explicit_pad_5;
-
+				DirectX::XMFLOAT4 dirW;
+				DirectX::XMFLOAT4 posW;
+				DirectX::XMFLOAT4 attenuation;
+				DirectX::XMFLOAT4 range;
 				float spot;
-				float _explicit_pad_6;
-				float _explicit_pad_7;
-				float _explicit_pad_8;
-
-				DirectX::XMFLOAT3  attenuation;
-				float _explicit_pad_9;
+				float _a0;
+				float _a1;
+				float _a2;
 			};
 
-			/*
-			struct PointLight {
-				float4 ambient;
-				float4 diffuse;
-				float4 specular;
-				float3 posW;
-				float range;
-				float3 attenuation;
-
-				20byte
-			};*/
 			struct PointLight
 			{
 				DirectX::XMFLOAT4 ambient;
 				DirectX::XMFLOAT4 diffuse;
 				DirectX::XMFLOAT4 specular;
-				DirectX::XMFLOAT3 posW;
-
-				float _explicit_pad_1;
-
-				float range;
-				float _explicit_pad_2;
-				float _explicit_pad_3;
-				float _explicit_pad_4;
-
-				DirectX::XMFLOAT3  attenuation;
-				float _explicit_pad_5;
+				DirectX::XMFLOAT4 posW;
+				DirectX::XMFLOAT4 attenuation;
+				DirectX::XMFLOAT4 range;
 			};
 
-			/*
-				struct VertexIn
-				{
-					float3 POSITION_L : POSITION;
-					float3 NORMAL_L : NORMAL_L;
-					float3 TANGENT_U: TANGENT_U;
-					float2 UV_L: UV_L;
-				};
-			*/
 			struct VertexIn {
 				DirectX::XMFLOAT3 positionL;
 				DirectX::XMFLOAT3 normal;
@@ -119,20 +56,19 @@ namespace xtest {
 
 			struct PerObjectCB
 			{
-				DirectX::XMFLOAT4X4 W;
-				DirectX::XMFLOAT4X4 WT;
-				DirectX::XMFLOAT4X4 WVP;
-				Nova3DMaterial material;
+				DirectX::XMFLOAT4X4 W;   //16
+				DirectX::XMFLOAT4X4 WT;  //16
+				DirectX::XMFLOAT4X4 WVP; //16
+				Nova3DMaterial material; //16
 			};
 
 			struct PerFrameCB 
 			{
-				DirectionalLight dirLight;
-				PointLight pointLight;
-				SpotLight spotLight;
-				DirectX::XMFLOAT3 eyePosW;
-				float _explicit_pad_1;
-			};
+				DirectX::XMFLOAT4 eyePosW; //4
+				DirectionalLight dirLight; //16
+				PointLight pointLight; //24
+				SpotLight spotLight;//32
+			};	
 
 			struct RarelyChangedCB
 			{

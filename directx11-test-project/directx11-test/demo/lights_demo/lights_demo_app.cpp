@@ -230,47 +230,32 @@ void LightDemoApp::InitMeshes()
 
 void LightDemoApp::InitLightsAndMaterials() {
 	//RED
-	d1.ambient	= XMFLOAT4(10.0f / 255.0f, 10.0f / 255.0f, 10.0f / 255.0f, 0.0f / 255.0f);
-	d1.diffuse	= XMFLOAT4(20.f / 255.0f, 20.f / 255.0f, 20.f / 255.0f, 0.0f / 255.0f);
-	d1.specular = XMFLOAT4(5.0f / 255.0f, 5.0f / 255.0f, 5.0f / 255.0f, 0.0f / 255.0f);
-
-	XMVECTOR dirW = XMLoadFloat4( new XMFLOAT4(-1, -1, -1, 0) );
-	XMStoreFloat3( &d1.dirW, dirW);
+	d1.ambient		= XMFLOAT4(20.0f / 255.0f, 20.0f / 255.0f, 20.0f / 255.0f, 128.f / 255.0f);
+	d1.diffuse		= XMFLOAT4(40.f / 255.0f, 40.f / 255.0f, 40.f / 255.0f, 128.f / 255.0f);
+	d1.specular		= XMFLOAT4(90 / 255.0f, 90 / 255.0f, 90 / 255.0f, 200.f / 255.0f);
 
 	//GREEN
-	s1.ambient		= XMFLOAT4(0.0f / 255.0f, 55.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f);
-	s1.attenuation	= XMFLOAT3(0.5f,0.5f,0.5f);
-	s1.diffuse		= XMFLOAT4(255.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f);
-	s1.range		= 15.0f;
-	s1.specular		= XMFLOAT4(255.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f);
-	s1.spot			= 20.0f;
-	//s1.posW			= XMFLOAT3(-10, 10, -10);
-
-	XMVECTOR sdirW = XMLoadFloat4(new XMFLOAT4(-1, -1, -1, 0));
-	XMStoreFloat3(&s1.dirW, sdirW);
-
-	XMVECTOR sposW = XMLoadFloat4(new XMFLOAT4(-10, 10, -10, 0));
-	XMStoreFloat3(&s1.posW, sposW);
+	s1.ambient		= XMFLOAT4(20.0f / 255.0f, 0 / 255.0f, 0 / 255.0f, 128.f / 255.0f);
+	s1.attenuation	= XMFLOAT4(0.2f,0.2f,0.2f,0);
+	s1.diffuse		= XMFLOAT4(128.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f, 128.f / 255.0f);
+	s1.range		= XMFLOAT4(15.0f, 0, 0, 0);
+	s1.specular		= XMFLOAT4(180.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f, 128.f / 255.0f);
+	s1.spot			= 0.8f;
 
 	//BLUE
-	p1.ambient = XMFLOAT4(0.0f / 255.0f, 0.0f / 255.0f, 55.0f / 255.0f, 255.0f / 255.0f);
-	p1.attenuation = XMFLOAT3(0.5f, 0.5f, 0.5f);
-	p1.diffuse = XMFLOAT4(0.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f);
-	//p1.posW = XMFLOAT3(10, 10, 10);
-	p1.range = 15.0f;
-	p1.specular = XMFLOAT4(255.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f);
+	p1.ambient		= XMFLOAT4(0.0f / 255.0f, 0.0f / 255.0f, 55.0f / 255.0f, 128.f / 255.0f);
+	p1.attenuation	= XMFLOAT4(0.1f, 0.1f, 0.1f,0);
+	p1.diffuse		= XMFLOAT4(0.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f, 128.f / 255.0f);
+	p1.range		= XMFLOAT4(25.0f, 0, 0, 0);
+	p1.specular		= XMFLOAT4(0.0 / 255.0f, 0 / 255.0f, 80.0f / 255.0f, 255.0f / 255.0f);
 	
-	XMVECTOR pposW = XMLoadFloat4( new XMFLOAT4(10, 10, 10,0) );
-	XMStoreFloat3(&p1.posW, pposW);
-
-
-	metal.ambient  = XMFLOAT4(98.0f / 255.0f, 75.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f);
-	metal.diffuse  = XMFLOAT4(255.0f / 255.0f, 255.0f / 255.0f, 30.0f / 255.0f, 255.0f / 255.0f);
-	metal.specular = XMFLOAT4(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 255.0f / 255.0f);
+	metal.ambient	= XMFLOAT4(98.0f / 255.0f, 75.0f / 255.0f, 0.0f / 255.0f, 128.f / 255.0f);
+	metal.diffuse	= XMFLOAT4(255.0f / 255.0f, 255.0f / 255.0f, 30.0f / 255.0f, 128.f / 255.0f);
+	metal.specular	= XMFLOAT4(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f);
 	
-	concrete.ambient = XMFLOAT4(13.0f/255.0f, 13.0f / 255.0f, 13.0f / 255.0f, 255.0f / 255.0f);
-	concrete.diffuse = XMFLOAT4(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f, 255.0f / 255.0f);
-	concrete.specular = XMFLOAT4(10.0f / 255.0f, 10.0f / 255.0f, 10.0f / 255.0f, 128.0f / 255.0f);
+	concrete.ambient	= XMFLOAT4(13.0f/255.0f, 13.0f / 255.0f, 13.0f / 255.0f, 128.f / 255.0f);
+	concrete.diffuse	= XMFLOAT4(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f, 128.f / 255.0f);
+	concrete.specular	= XMFLOAT4(255.0f / 255.0f, 255.0f / 255.0f, 255.0f / 255.0f, 128.0f / 255.0f);
 }
 
 void LightDemoApp::InitMatrices()
@@ -478,11 +463,31 @@ void LightDemoApp::OnKeyStatusChange(input::Key key, const input::KeyStatus& sta
 
 XMMATRIX LightDemoApp::GetWTXMMATRIX( XMMATRIX W )
 {
-	W.r[3] = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 	XMVECTOR det = XMMatrixDeterminant(W);
-
 	return XMMatrixTranspose(XMMatrixInverse(&det,W));
 }
+
+
+DirectX::XMMATRIX GetTransform(XMFLOAT3 rotation, XMFLOAT3 scale, XMFLOAT3 position) {
+	DirectX::XMMATRIX matRotateX;
+	DirectX::XMMATRIX matRotateY;
+	DirectX::XMMATRIX matRotateZ;
+	DirectX::XMMATRIX matScale;
+	DirectX::XMMATRIX matTranslate;
+
+	DirectX::XMMATRIX transform;
+
+	matRotateX = DirectX::XMMatrixRotationX(rotation.x);
+	matRotateY = DirectX::XMMatrixRotationY(rotation.y);
+	matRotateZ = DirectX::XMMatrixRotationZ(rotation.z);
+	matScale = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
+	matTranslate = DirectX::XMMatrixTranslation(position.x, position.y, position.z);
+
+	transform = matRotateX * matRotateY * matRotateZ * matScale * matTranslate;
+
+	return transform;
+}
+
 
 XMMATRIX LightDemoApp::GetWVPXMMATRIX( XMMATRIX W )
 {
@@ -498,9 +503,10 @@ XMMATRIX LightDemoApp::GetWVPXMMATRIX( XMMATRIX W )
 	return WVP;
 }
 
-float angle = 0;
-float pos = 0;
-float sign = 1; 
+float dLAngle = 0;
+float X = -15;
+float Z = -15;
+float DIRECTIONAL_RADIUS = 50;
 
 void LightDemoApp::UpdateScene(float deltaSeconds)
 {
@@ -511,30 +517,31 @@ void LightDemoApp::UpdateScene(float deltaSeconds)
 	//PS UPDATE CONSTANT BUFFER DATA PerFrame
 	//LIGHTS
 	{
-		angle += deltaSeconds;
+		dLAngle += deltaSeconds;
 
-		float X = 50 * cos(angle);
-		float Y = -20;
-		float Z = 50 * sin(angle);
-
-		XMVECTOR dirW = XMLoadFloat4(new XMFLOAT4(X, Y, Z, 0));
-		XMStoreFloat3( &d1.dirW, dirW);
-
-		if (pos > 2)
-			sign = -1;
+		X +=  deltaSeconds;
+		Z +=  deltaSeconds;
 		
-		if (pos < 0)
-			sign = 1;
+		XMFLOAT4 DirectionalLightPosition	= XMFLOAT4(std::sin(dLAngle) * DIRECTIONAL_RADIUS, 9.0f, std::cos(dLAngle) * DIRECTIONAL_RADIUS, 1.0f);
+		XMVECTOR dirW						= XMVectorSet(-DirectionalLightPosition.x, -DirectionalLightPosition.y, -DirectionalLightPosition.z, 0.0f);
+		dirW = XMVector3Normalize(dirW);
 
-		pos += sign * deltaSeconds;
+		XMFLOAT4 PointLightPosition = XMFLOAT4(0, 4, 0, 1.0f);
+		XMVECTOR pPosW = XMVectorSet(PointLightPosition.x, PointLightPosition.y, PointLightPosition.z, 0.0f);
 
-		float Xp = 10 * pos;
-		float Zp = 10 * pos;
+		XMStoreFloat4( &d1.dirW, dirW);
+		XMStoreFloat4( &p1.posW, pPosW);
 
-		XMVECTOR posW = XMLoadFloat4(new XMFLOAT4(Xp, 5, Zp, 0));
-		XMStoreFloat3(&p1.posW, posW);
+		XMFLOAT4 SpotLightPosition = XMFLOAT4(5, 7.0f, 5, 1.0f);
+		XMFLOAT4 SpotLightDirectionW = XMFLOAT4(-2, 0, -2, 1.0f);
 
-		XMVECTOR eyePosW = XMVectorSet(m_camera.GetPosition().x, m_camera.GetPosition().y, m_camera.GetPosition().z, 1);
+		XMVECTOR sPosW = XMVectorSet(SpotLightPosition.x, SpotLightPosition.y, SpotLightPosition.z, 1.0f);
+		XMVECTOR sDirW = XMVectorSet(SpotLightDirectionW.x, SpotLightDirectionW.y, SpotLightDirectionW.z, 0.0f);
+
+		XMStoreFloat4(&s1.posW, sPosW);
+		XMStoreFloat4(&s1.dirW, sDirW);
+
+		XMVECTOR eyePosW = XMVectorSet ( m_camera.GetPosition().x,m_camera.GetPosition().y, m_camera.GetPosition().z, 1.0f);
 
 		D3D11_MAPPED_SUBRESOURCE psPerFrameResource;
 		ZeroMemory(&psPerFrameResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
@@ -542,67 +549,30 @@ void LightDemoApp::UpdateScene(float deltaSeconds)
 		XTEST_D3D_CHECK(m_d3dContext->Map(m_psPerFrameConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &psPerFrameResource));
 
 		//update the Frame data
-		/*
-
-			cbuffer PerFrameCB : register(b1)
-			{
-				DirectionalLight d;
-				PointLight p;
-				SpotLight s;
-				float3 eyePosW;
-			};
-
-			struct DirectionalLight {
-				float4 ambient;
-				float4 diffuse;
-				float4 specular;
-				float3 dirW;
-			};
-		*/
 		PerFrameCB* psFrameConstantBufferData = (PerFrameCB*)psPerFrameResource.pData;
 
-		XMStoreFloat4(&psFrameConstantBufferData->dirLight.ambient, XMVectorSet(d1.ambient.x, d1.ambient.y, d1.ambient.z, d1.ambient.w));
-		XMStoreFloat4(&psFrameConstantBufferData->dirLight.diffuse, XMVectorSet(d1.diffuse.x, d1.diffuse.y, d1.diffuse.z, d1.diffuse.w));
-		XMStoreFloat4(&psFrameConstantBufferData->dirLight.specular, XMVectorSet(d1.specular.x, d1.specular.y, d1.specular.z, d1.specular.w));
-		XMStoreFloat3(&psFrameConstantBufferData->dirLight.dirW, XMVectorSet(d1.dirW.x, d1.dirW.y, d1.dirW.z, 0));
-		/*
-			struct PointLight {
-				float4 ambient;
-				float4 diffuse;
-				float4 specular;
-				float3 posW;
-				float range;
-				float3 attenuation;
-			};
-		*/
-		XMStoreFloat4(&psFrameConstantBufferData->pointLight.ambient, XMVectorSet(p1.ambient.x, p1.ambient.y, p1.ambient.z, p1.ambient.w));
-		XMStoreFloat4(&psFrameConstantBufferData->pointLight.diffuse, XMVectorSet(p1.diffuse.x, p1.diffuse.y, p1.diffuse.z, p1.diffuse.w));
-		XMStoreFloat4(&psFrameConstantBufferData->pointLight.specular, XMVectorSet(p1.specular.x, p1.specular.y, p1.specular.z, p1.specular.w));
-		XMStoreFloat3(&psFrameConstantBufferData->pointLight.posW, XMVectorSet(p1.posW.x, p1.posW.y, p1.posW.z, 0));
-		XMStoreFloat(&psFrameConstantBufferData->pointLight.range, XMVectorSet(p1.range, 0, 0, 0));
-		XMStoreFloat3(&psFrameConstantBufferData->pointLight.attenuation, XMVectorSet(p1.attenuation.x, p1.attenuation.y, p1.attenuation.z, 0));
-		/*
-			struct SpotLight {
-				float4 ambient;
-				float4 diffuse;
-				float4 specular;
-				float3 posW;
-				float range;
-				float3 dirW;
-				float spot;
-				float3 attenuation;
-			};
-		*/
-		XMStoreFloat4(&psFrameConstantBufferData->spotLight.ambient, XMVectorSet(s1.ambient.x, s1.ambient.y, s1.ambient.z, s1.ambient.w));
-		XMStoreFloat4(&psFrameConstantBufferData->spotLight.diffuse, XMVectorSet(s1.diffuse.x, s1.diffuse.y, s1.diffuse.z, s1.diffuse.w));
-		XMStoreFloat4(&psFrameConstantBufferData->spotLight.specular, XMVectorSet(s1.specular.x, s1.specular.y, s1.specular.z, s1.specular.w));
-		XMStoreFloat3(&psFrameConstantBufferData->spotLight.posW, XMVectorSet(s1.posW.x, s1.posW.y, s1.posW.z, 0));
-		XMStoreFloat(&psFrameConstantBufferData->spotLight.range, XMVectorSet(s1.range, 0, 0, 0));
-		XMStoreFloat3(&psFrameConstantBufferData->spotLight.dirW, XMVectorSet(s1.dirW.x, s1.dirW.y, s1.dirW.z, 0));
-		XMStoreFloat(&psFrameConstantBufferData->spotLight.spot, XMVectorSet(s1.spot, 0, 0, 0));
-		XMStoreFloat3(&psFrameConstantBufferData->spotLight.attenuation, XMVectorSet(s1.attenuation.x, s1.attenuation.y, s1.attenuation.z, 0));
+		XMStoreFloat4(&psFrameConstantBufferData->eyePosW, eyePosW);
 
-		XMStoreFloat3(&psFrameConstantBufferData->eyePosW, eyePosW);
+		XMStoreFloat4(&psFrameConstantBufferData->dirLight.ambient,			XMVectorSet(d1.ambient.x,  d1.ambient.y,  d1.ambient.z,  d1.ambient.w));
+		XMStoreFloat4(&psFrameConstantBufferData->dirLight.diffuse,			XMVectorSet(d1.diffuse.x,  d1.diffuse.y,  d1.diffuse.z,  d1.diffuse.w));
+		XMStoreFloat4(&psFrameConstantBufferData->dirLight.specular,		XMVectorSet(d1.specular.x, d1.specular.y, d1.specular.z, d1.specular.w));
+		XMStoreFloat4(&psFrameConstantBufferData->dirLight.dirW,			XMVectorSet(d1.dirW.x, d1.dirW.y, d1.dirW.z, 0));
+		
+		XMStoreFloat4(&psFrameConstantBufferData->pointLight.ambient,		XMVectorSet(p1.ambient.x,  p1.ambient.y,  p1.ambient.z, p1.ambient.w));
+		XMStoreFloat4(&psFrameConstantBufferData->pointLight.diffuse,		XMVectorSet(p1.diffuse.x,  p1.diffuse.y,  p1.diffuse.z, p1.diffuse.w));
+		XMStoreFloat4(&psFrameConstantBufferData->pointLight.specular,		XMVectorSet(p1.specular.x, p1.specular.y, p1.specular.z, p1.specular.w));
+		XMStoreFloat4(&psFrameConstantBufferData->pointLight.posW,			XMVectorSet(p1.posW.x, p1.posW.y, p1.posW.z, 1));
+		XMStoreFloat4(&psFrameConstantBufferData->pointLight.attenuation,	XMVectorSet(p1.attenuation.x, p1.attenuation.y, p1.attenuation.z, 0));
+		XMStoreFloat4(&psFrameConstantBufferData->pointLight.range,			XMVectorSet(p1.range.x, 0, 0, 0));
+
+		XMStoreFloat4(&psFrameConstantBufferData->spotLight.ambient,		XMVectorSet(s1.ambient.x,  s1.ambient.y,  s1.ambient.z, s1.ambient.w));
+		XMStoreFloat4(&psFrameConstantBufferData->spotLight.diffuse,		XMVectorSet(s1.diffuse.x,  s1.diffuse.y,  s1.diffuse.z, s1.diffuse.w));
+		XMStoreFloat4(&psFrameConstantBufferData->spotLight.specular,		XMVectorSet(s1.specular.x, s1.specular.y, s1.specular.z, s1.specular.w));
+		XMStoreFloat4(&psFrameConstantBufferData->spotLight.dirW,			XMVectorSet(s1.dirW.x, s1.dirW.y, s1.dirW.z, 0));
+		XMStoreFloat4(&psFrameConstantBufferData->spotLight.posW,			XMVectorSet(s1.posW.x, s1.posW.y, s1.posW.z, 1));
+		XMStoreFloat4(&psFrameConstantBufferData->spotLight.attenuation,	XMVectorSet(s1.attenuation.x, s1.attenuation.y, s1.attenuation.z, 0));
+		XMStoreFloat4(&psFrameConstantBufferData->spotLight.range,			XMVectorSet(s1.range.x, 0, 0, 0));
+		XMStoreFloat(&psFrameConstantBufferData->spotLight.spot,			XMVectorSet(s1.spot, 0, 0, 1));
 
 		// enable GPU access
 		m_d3dContext->Unmap(m_psPerFrameConstantBuffer.Get(), 0);
@@ -616,13 +586,13 @@ void LightDemoApp::RenderScene()
 {
 	m_d3dAnnotation->BeginEvent(L"render-scene");
 
-
 	UINT stride = sizeof(mesh::MeshData::Vertex);
 	UINT offset = 0;
 
 	// clear the frame
 	m_d3dContext->ClearDepthStencilView(m_depthBufferView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
-	m_d3dContext->ClearRenderTargetView(m_backBufferView.Get(), DirectX::Colors::Violet);
+//	m_d3dContext->ClearRenderTargetView(m_backBufferView.Get(), DirectX::Colors::Violet);
+	m_d3dContext->ClearRenderTargetView(m_backBufferView.Get(), DirectX::Colors::Black);
 
 	// set the shaders and the input layout
 	m_d3dContext->RSSetState(m_rasterizerState.Get());
@@ -651,7 +621,10 @@ void LightDemoApp::RenderScene()
 			XMStoreFloat4x4(&constantBufferData->WVP, GetWVPXMMATRIX(m_sphere.GetTransform()));
 			XMStoreFloat4x4(&constantBufferData->WT, GetWTXMMATRIX(m_sphere.GetTransform()));
 			XMStoreFloat4x4(&constantBufferData->W, m_sphere.GetTransform());
-			
+			XMStoreFloat4(&constantBufferData->material.ambient, XMVectorSet(m_sphere.material.ambient.x, m_sphere.material.ambient.y, m_sphere.material.ambient.z, m_sphere.material.ambient.w));
+			XMStoreFloat4(&constantBufferData->material.diffuse, XMVectorSet(m_sphere.material.diffuse.x, m_sphere.material.diffuse.y, m_sphere.material.diffuse.z, m_sphere.material.diffuse.w));
+			XMStoreFloat4(&constantBufferData->material.specular, XMVectorSet(m_sphere.material.specular.x, m_sphere.material.specular.y, m_sphere.material.specular.z, m_sphere.material.specular.w));
+
 			m_d3dContext->Unmap(m_vsConstantBuffer.Get(), 0);
 		}
 
@@ -676,6 +649,9 @@ void LightDemoApp::RenderScene()
 			XMStoreFloat4x4(&constantBufferData->WVP, GetWVPXMMATRIX(m_plane.GetTransform()));
 			XMStoreFloat4x4(&constantBufferData->WT, GetWTXMMATRIX(m_plane.GetTransform()));
 			XMStoreFloat4x4(&constantBufferData->W, m_plane.GetTransform());
+			XMStoreFloat4(&constantBufferData->material.ambient, XMVectorSet(m_plane.material.ambient.x, m_plane.material.ambient.y, m_plane.material.ambient.z, m_plane.material.ambient.w));
+			XMStoreFloat4(&constantBufferData->material.diffuse, XMVectorSet(m_plane.material.diffuse.x, m_plane.material.diffuse.y, m_plane.material.diffuse.z, m_plane.material.diffuse.w));
+			XMStoreFloat4(&constantBufferData->material.specular, XMVectorSet(m_plane.material.specular.x, m_plane.material.specular.y, m_plane.material.specular.z, m_plane.material.specular.w));
 
 			m_d3dContext->Unmap(m_vsConstantBuffer.Get(), 0);
 		}
@@ -699,7 +675,10 @@ void LightDemoApp::RenderScene()
 			XMStoreFloat4x4(&constantBufferData->WVP, GetWVPXMMATRIX(m_cube.GetTransform()));
 			XMStoreFloat4x4(&constantBufferData->WT, GetWTXMMATRIX(m_cube.GetTransform()));
 			XMStoreFloat4x4(&constantBufferData->W, m_cube.GetTransform());
-			
+			XMStoreFloat4(&constantBufferData->material.ambient, XMVectorSet(m_cube.material.ambient.x, m_cube.material.ambient.y, m_cube.material.ambient.z, m_cube.material.ambient.w));
+			XMStoreFloat4(&constantBufferData->material.diffuse, XMVectorSet(m_cube.material.diffuse.x, m_cube.material.diffuse.y, m_cube.material.diffuse.z, m_cube.material.diffuse.w));
+			XMStoreFloat4(&constantBufferData->material.specular, XMVectorSet(m_cube.material.specular.x, m_cube.material.specular.y, m_cube.material.specular.z, m_cube.material.specular.w));
+
 			m_d3dContext->Unmap(m_vsConstantBuffer.Get(), 0);
 		}
 

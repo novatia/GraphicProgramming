@@ -8,27 +8,27 @@ struct DirectionalLight {
 	float4 ambient;
 	float4 diffuse;
 	float4 specular;
-	float3 dirW;
+	float4 dirW;
 };
 
 struct PointLight {
 	float4 ambient;
 	float4 diffuse;
 	float4 specular;
-	float3 posW;
-	float range;
-	float3 attenuation;
+	float4 posW;
+	float4 attenuation;
+	float4 range;
 };
 
 struct SpotLight {
 	float4 ambient;
 	float4 diffuse;
 	float4 specular;
-	float3 posW;
-	float range;
-	float3 dirW;
+	float4 dirW;
+	float4 posW;
+	float4 attenuation;
+	float4 range;
 	float spot;
-	float3 attenuation;
 };
 
 cbuffer PerObjectCB : register(b0)
@@ -36,16 +36,15 @@ cbuffer PerObjectCB : register(b0)
 	float4x4 W;
 	float4x4 WT;
 	float4x4 WVP;
-	float4x4 transform;
 	Material material;
 };
 
 cbuffer PerFrameCB : register(b1)
 {
+	float4 eyePosW;
 	DirectionalLight d;
 	PointLight p;
 	SpotLight s;
-	float3 eyePosW;
 };
 
 cbuffer RarelyChangedCB : register(b2)
@@ -62,7 +61,7 @@ struct VertexOut
 	float3 NORMAL_W		: NORMAL;
 };
 
-void DirectionalLightContribution(Material mat, DirectionalLight light, float3 normalW, float3 toEyeW, out float4 ambient, out float4 diffuse, out float4 specular) 
+void DirectionalLightContribution(Material mat, DirectionalLight light, float3 normalW, float4 toEyeW, out float4 ambient, out float4 diffuse, out float4 specular) 
 {
 	ambient  = float4(0.f, 0.f, 0.f, 0.f);
 	diffuse  = float4(0.f, 0.f, 0.f, 0.f);
@@ -70,7 +69,7 @@ void DirectionalLightContribution(Material mat, DirectionalLight light, float3 n
 
 	ambient += mat.ambient * light.ambient;
 
-	float3 toLightW = -light.dirW;
+	float3 toLightW = -light.dirW.xyz;
 	float Kd = dot( toLightW, normalW );
 
 	[flatten]
@@ -78,22 +77,22 @@ void DirectionalLightContribution(Material mat, DirectionalLight light, float3 n
 	{
 		diffuse += Kd * mat.diffuse*light.diffuse;
 
-		float3 halfVectorW = normalize(toLightW+toEyeW);
+		float3 halfVectorW = normalize( toLightW + toEyeW.xyz);
 		float Ks = pow(max(dot(halfVectorW,normalW),0.f),mat.specular.w);
 		specular += Ks * mat.specular*light.specular;
 	}
 }
 
-void PointLightContribution(Material mat, PointLight light, float3 posW, float3 normalW, float3 toEyeW, out float4 ambient, out float4 diffuse, out float4 specular)
+void PointLightContribution(Material mat, PointLight light, float3 posW, float3 normalW, float4 toEyeW, out float4 ambient, out float4 diffuse, out float4 specular)
 {
 	ambient = float4(0.f, 0.f, 0.f, 0.f);
 	diffuse = float4(0.f, 0.f, 0.f, 0.f);
 	specular = float4(0.f, 0.f, 0.f, 0.f);
 
-	float3 toLightW = ( light.posW - posW );
+	float3 toLightW = ( light.posW.xyz - posW );
 	float distance = length(toLightW);
 
-	if (distance > light.range)
+	if (distance > light.range.x)
 		return;
 	
 	toLightW = normalize(toLightW);
@@ -107,28 +106,28 @@ void PointLightContribution(Material mat, PointLight light, float3 posW, float3 
 	{
 		diffuse += Kd * mat.diffuse * light.diffuse;
 
-		float3 halfVectorW = normalize(toLightW + toEyeW);
+		float3 halfVectorW = normalize(toLightW + toEyeW.xyz);
 		float Ks = pow(max(dot(halfVectorW, normalW), 0.f), mat.specular.w);
 		specular += Ks * mat.specular*light.specular;
 	}
 
 	//attenuazione
-	float attenuation = 1 / dot(light.attenuation, float3(1, distance, distance*distance));
+	float attenuation = 1 / dot(light.attenuation.xyz, float3(1, distance, distance*distance));
 
 	diffuse *= attenuation;
 	specular *= specular;
 }
 
-void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 normalW, float3 toEyeW, out float4 ambient, out float4 diffuse, out float4 specular)
+void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 normalW, float4 toEyeW, out float4 ambient, out float4 diffuse, out float4 specular)
 {
 	ambient = float4(0.f, 0.f, 0.f, 0.f);
 	diffuse = float4(0.f, 0.f, 0.f, 0.f);
 	specular = float4(0.f, 0.f, 0.f, 0.f);
 
-	float3 toLightW = (light.posW - posW);
+	float3 toLightW = (light.posW.xyz - posW);
 
 	float distance = length(toLightW);
-	if (distance > light.range)
+	if (distance > light.range.x)
 		return;
 	
 	toLightW = normalize(toLightW);
@@ -141,14 +140,14 @@ void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 no
 	{
 		diffuse += Kd * mat.diffuse * light.diffuse;
 
-		float3 halfVectorW = normalize(toLightW + toEyeW);
+		float3 halfVectorW = normalize(toLightW + toEyeW.xyz);
 		float Ks = pow(max(dot(halfVectorW, normalW), 0.f), mat.specular.w);
 		specular += Ks * mat.specular*light.specular;
 	}
 
-	float spot = pow(max(dot(-toLightW, light.dirW), 0.f), light.spot);
+	float spot = pow(max(dot(-toLightW, light.dirW.xyz), 0.f), light.spot);
 
-	float attenuation = spot / dot(light.attenuation, float3(1, distance, distance*distance));
+	float attenuation = spot / dot(light.attenuation.xyz, float3(1, distance, distance*distance));
 
 	ambient *= spot;
 	diffuse *= attenuation;
@@ -160,7 +159,7 @@ float4 main( VertexOut pin ) : SV_Target
 {
 	pin.NORMAL_W  = normalize(pin.NORMAL_W);
 
-	float3 toEyeW = normalize( eyePosW - pin.POSITION_W);
+	float4 toEyeW = normalize( eyePosW - float4(pin.POSITION_W,1));
 
 	float4 totalAmbient  = float4(0.f, 0.f, 0.f, 0.f);
 	float4 totalDiffuse  = float4(0.f, 0.f, 0.f, 0.f);
@@ -170,7 +169,7 @@ float4 main( VertexOut pin ) : SV_Target
 	float4 diffuse;
 	float4 specular;
 
-	if (useDLight) {
+	if ( useDLight ) {
 		DirectionalLightContribution(material, d, pin.NORMAL_W, toEyeW, ambient, diffuse, specular);
 
 		totalAmbient  += ambient;
@@ -178,7 +177,7 @@ float4 main( VertexOut pin ) : SV_Target
 		totalSpecular += specular;
 	}
 
-	if (usePLight) {
+	if ( usePLight ) {
 		PointLightContribution(material, p, pin.POSITION_W, pin.NORMAL_W, toEyeW, ambient, diffuse, specular);
 
 		totalAmbient += ambient;
@@ -186,7 +185,7 @@ float4 main( VertexOut pin ) : SV_Target
 		totalSpecular += specular;
 	}
 
-	if (useSLight) {
+	if ( useSLight ) {
 		SpotLightContribution(material, s, pin.POSITION_W, pin.NORMAL_W, toEyeW, ambient, diffuse, specular);
 
 		totalAmbient += ambient;
@@ -199,7 +198,7 @@ float4 main( VertexOut pin ) : SV_Target
 	finalColor.a = totalDiffuse.a;
 
 	return finalColor;
-	//return float4(d.dirW, 1) ;	
+//	return p.diffuse;	
 	//return float4(toEyeW, 1);
 	//return float4(pin.NORMAL_W,1);
 	//return material.diffuse;
