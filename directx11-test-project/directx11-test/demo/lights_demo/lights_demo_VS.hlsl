@@ -7,10 +7,9 @@ struct Material
 
 cbuffer PerObjectCB : register(b0)
 {
-	float4x4 W;
-	float4x4 WT;
-	float4x4 WVP;
-	float4x4 TRANSFORM;
+	float4x4 W;  //TRANSFORM
+	float4x4 WT; //TRANSFROM INVERTED TRANSPOSED
+	float4x4 WVP;//TRANSFROM VIEW-PROJECTION MATRIX (CLIP SPACE)
 };
 
 struct VertexIn
@@ -32,14 +31,12 @@ VertexOut main(VertexIn vin)
 {
 	VertexOut vout;
 
-	float4 POSITION_LH	= float4(vin.POSITION_L, 1);
-	float4 POSITION_LT	= mul( TRANSFORM, POSITION_LH);
-	vout.POSITION_H		= mul( WVP , POSITION_LT );
+	float4 POSITION_LH	= float4 ( vin.POSITION_L, 1 );
+	vout.POSITION_H		= mul    ( WVP , POSITION_LH );
+	vout.POSITION_W		= mul	 ( W, POSITION_LH ).xyz;
 
-	vout.POSITION_W		= mul( W, POSITION_LH ).xyz;
-
-	float4 NORMAL_LH = float4(vin.NORMAL_L, 1);
-	vout.NORMAL_W		= mul( WT, NORMAL_LH).xyz;
+	float4 NORMAL_LH = float4(vin.NORMAL_L, 0);
+	vout.NORMAL_W = mul(WT, NORMAL_LH).xyz;
 
 	return vout;
 }

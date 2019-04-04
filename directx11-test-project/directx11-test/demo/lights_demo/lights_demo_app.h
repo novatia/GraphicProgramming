@@ -89,6 +89,7 @@ namespace xtest {
 				DirectX::XMFLOAT4 diffuse;
 				DirectX::XMFLOAT4 specular;
 				DirectX::XMFLOAT3 posW;
+
 				float _explicit_pad_1;
 
 				float range;
@@ -121,7 +122,6 @@ namespace xtest {
 				DirectX::XMFLOAT4X4 W;
 				DirectX::XMFLOAT4X4 WT;
 				DirectX::XMFLOAT4X4 WVP;
-				DirectX::XMFLOAT4X4 transform;
 				Nova3DMaterial material;
 			};
 
@@ -158,7 +158,6 @@ namespace xtest {
 			LightDemoApp& operator=(LightDemoApp&&) = delete;
 			LightDemoApp& operator=(const LightDemoApp&) = delete;
 
-
 			virtual void Init() override;
 			virtual void OnResized() override;
 			virtual void UpdateScene(float deltaSeconds) override;
@@ -176,10 +175,8 @@ namespace xtest {
 			void InitBuffers();
 			void InitRasterizerState();
 
-			DirectX::XMMATRIX GetWVPXMMATRIX();
-			DirectX::XMMATRIX GetWTXMMATRIX();
-			DirectX::XMMATRIX GetWXMMATRIX();
-			DirectX::XMVECTOR GetEyePosW();
+			DirectX::XMMATRIX GetWVPXMMATRIX(DirectX::XMMATRIX W);
+			DirectX::XMMATRIX GetWTXMMATRIX(DirectX::XMMATRIX W);
 
 			DirectX::XMFLOAT4X4 m_viewMatrix;
 			DirectX::XMFLOAT4X4 m_worldMatrix;

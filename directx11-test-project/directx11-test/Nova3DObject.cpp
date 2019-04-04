@@ -26,5 +26,4 @@ DirectX::XMMATRIX Nova3DObject::GetTransform() {
 	transform = matRotateX * matRotateY * matRotateZ * matScale * matTranslate;
 
 	return transform;
-
 }

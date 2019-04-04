@@ -202,4 +202,5 @@ float4 main( VertexOut pin ) : SV_Target
 	//return float4(d.dirW, 1) ;	
 	//return float4(toEyeW, 1);
 	//return float4(pin.NORMAL_W,1);
+	//return material.diffuse;
 }
