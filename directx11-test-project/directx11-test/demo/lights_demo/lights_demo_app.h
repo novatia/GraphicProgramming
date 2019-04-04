@@ -179,6 +179,7 @@ namespace xtest {
 			DirectX::XMMATRIX GetWVPXMMATRIX();
 			DirectX::XMMATRIX GetWTXMMATRIX();
 			DirectX::XMMATRIX GetWXMMATRIX();
+			DirectX::XMVECTOR GetEyePosW();
 
 			DirectX::XMFLOAT4X4 m_viewMatrix;
 			DirectX::XMFLOAT4X4 m_worldMatrix;

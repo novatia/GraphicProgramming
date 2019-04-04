@@ -1,4 +1,5 @@
-struct Material {
+struct Material 
+{
 	float4 ambient;
 	float4 diffuse;
 	float4 specular;
@@ -15,32 +16,30 @@ cbuffer PerObjectCB : register(b0)
 struct VertexIn
 {
 	float3 POSITION_L : POSITION;
-	float3 NORMAL_L : NORMAL;
-	float3 TANGENT_L : NORMAL1;
-	float4 UV_L: TEXCOORD;
+	float3 NORMAL_L   : NORMAL;
+	float3 TANGENT_L  : NORMAL1;
+	float4 UV_L		  : TEXCOORD;
 };
 
 struct VertexOut
 {
-	float4 POSITION_HW :SV_POSITION;
-	float3 NORMAL_W :NORMAL;
+	float4 POSITION_H : SV_POSITION;
+	float3 POSITION_W : POSITION;
+	float3 NORMAL_W   : NORMAL;
 };
 
 VertexOut main(VertexIn vin)
 {
 	VertexOut vout;
-	float4 POSITION_H = float4(vin.POSITION_L, 1);
 
-	float4 POSITION_LT	= mul(TRANSFORM,POSITION_H);
-	//vout.POSITION_HW	= mul( POSITION_LT, WVP );
-	vout.POSITION_HW = mul(  WVP , POSITION_LT);
+	float4 POSITION_LH	= float4(vin.POSITION_L, 1);
+	float4 POSITION_LT	= mul( TRANSFORM, POSITION_LH);
+	vout.POSITION_H		= mul( WVP , POSITION_LT );
 
-	float4 NORMAL_H = float4(vin.NORMAL_L, 1);
-	float4 NORMAL_LT	= mul(TRANSFORM, NORMAL_H);
-	//float4 NORMAL_LT = float4(vin.NORMAL_L, 1);
-	float4 NORMAL_WT = mul( WT, NORMAL_LT);
+	vout.POSITION_W		= mul( W, POSITION_LH ).xyz;
 
-	vout.NORMAL_W		= float3(NORMAL_WT.x, NORMAL_WT.y, NORMAL_WT.z);
+	float4 NORMAL_LH = float4(vin.NORMAL_L, 1);
+	vout.NORMAL_W		= mul( WT, NORMAL_LH).xyz;
 
 	return vout;
 }
