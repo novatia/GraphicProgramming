@@ -22,9 +22,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	DirectxSettings directxSettings;
 	directxSettings.showFrameStats = true;
+	
 
-	//typedef xtest::demo::BoxDemoApp TestApp;
-	typedef xtest::demo::LightDemoApp TestApp;
+	typedef xtest::demo::LightsDemoApp TestApp;
 
 	TestApp app(hInstance, windowSettings, directxSettings);
 	app.Init();

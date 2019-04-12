@@ -1,42 +1,41 @@
-struct Material 
+
+struct Material
 {
 	float4 ambient;
 	float4 diffuse;
 	float4 specular;
 };
 
-cbuffer PerObjectCB : register(b0)
-{
-	float4x4 W;  //TRANSFORM
-	float4x4 WT; //TRANSFROM INVERTED TRANSPOSED
-	float4x4 WVP;//TRANSFROM VIEW-PROJECTION MATRIX (CLIP SPACE)
-};
-
 struct VertexIn
 {
-	float3 POSITION_L : POSITION;
-	float3 NORMAL_L   : NORMAL;
-	float3 TANGENT_L  : NORMAL1;
-	float4 UV_L		  : TEXCOORD;
+	float3 posL : POSITION;
+	float3 normalL : NORMAL;
 };
 
 struct VertexOut
 {
-	float4 POSITION_H : SV_POSITION;
-	float3 POSITION_W : POSITION;
-	float3 NORMAL_W   : NORMAL;
+	float4 posH : SV_POSITION;
+	float3 posW : POSITION;
+	float3 normalW : NORMAL;
 };
+
+
+cbuffer PerObjectCB : register(b0)
+{
+	float4x4 W;
+	float4x4 W_inverseTraspose;
+	float4x4 WVP;
+	Material material;
+};
+
 
 VertexOut main(VertexIn vin)
 {
 	VertexOut vout;
 
-	float4 POSITION_LH	= float4 ( vin.POSITION_L, 1 );
-	vout.POSITION_H		= mul    ( WVP , POSITION_LH );
-	vout.POSITION_W		= mul	 ( W, POSITION_LH ).xyz;
-
-	float4 NORMAL_LH = float4(vin.NORMAL_L, 0);
-	vout.NORMAL_W = mul(WT, NORMAL_LH).xyz;
+	vout.posW = mul(float4(vin.posL, 1.0f), W).xyz;
+	vout.normalW = mul(vin.normalL, (float3x3)W_inverseTraspose);
+	vout.posH = mul(float4(vin.posL, 1.0f), WVP);
 
 	return vout;
 }
