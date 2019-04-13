@@ -22,13 +22,12 @@ namespace xtest {
 		class TextureDemoApp : public application::DirectxApp, public input::MouseListener, public input::KeyboardListener
 		{
 		public:
-
-
 			struct Material
 			{
 				DirectX::XMFLOAT4 ambient;
 				DirectX::XMFLOAT4 diffuse;
 				DirectX::XMFLOAT4 specular;
+				DirectX::XMFLOAT4 options;
 			};
 
 			struct DirectionalLight
@@ -69,13 +68,14 @@ namespace xtest {
 				DirectX::XMFLOAT4X4 W;
 				DirectX::XMFLOAT4X4 W_inverseTraspose;
 				DirectX::XMFLOAT4X4 WVP;
+				DirectX::XMFLOAT4X4 TexcoordMatrix;
 				Material material;
 			};
 
 			struct PerFrameCB
 			{
 				DirectionalLight dirLight;
-				PointLight pointLight;
+				std::array<PointLight,5> pointLights;
 				SpotLight spotLight;
 				DirectX::XMFLOAT3 eyePosW;
 				float _explicit_pad_;
@@ -98,6 +98,10 @@ namespace xtest {
 				Microsoft::WRL::ComPtr<ID3D11Buffer> d3dPerObjectCB;
 				Microsoft::WRL::ComPtr<ID3D11Buffer> d3dVertexBuffer;
 				Microsoft::WRL::ComPtr<ID3D11Buffer> d3dIndexBuffer;
+
+				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> diffuse_texture_view;
+				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> normal_texture_view;
+				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> gloss_texture_view;
 			};
 
 
@@ -114,6 +118,11 @@ namespace xtest {
 				DirectX::XMFLOAT4X4 W;
 				Microsoft::WRL::ComPtr<ID3D11Buffer> d3dVertexBuffer;
 				Microsoft::WRL::ComPtr<ID3D11Buffer> d3dIndexBuffer;
+
+
+				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> diffuse_texture_view;
+				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> normal_texture_view;
+				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> gloss_texture_view;
 			};
 
 
@@ -151,7 +160,9 @@ namespace xtest {
 
 			DirectionalLight m_dirLight;
 			SpotLight m_spotLight;
-			PointLight m_pointLight;
+
+			std::array<PointLight, 5> m_pointLights;
+
 			RarelyChangedCB m_lightsControl;
 			bool m_isLightControlDirty;
 			bool m_stopLights;
@@ -166,6 +177,8 @@ namespace xtest {
 			Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;
 			Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
 			Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState;
+
+			Microsoft::WRL::ComPtr <ID3D11SamplerState> m_textureSampler;
 
 		};
 

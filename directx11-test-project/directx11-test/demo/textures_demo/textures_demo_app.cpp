@@ -3,7 +3,7 @@
 #include <file/file_utils.h>
 #include <math/math_utils.h>
 #include <service/locator.h>
-
+#include <WICTextureLoader.h>
 
 using namespace DirectX;
 using namespace xtest;
@@ -21,7 +21,7 @@ TextureDemoApp::TextureDemoApp(HINSTANCE instance,
 	, m_camera(math::ToRadians(68.f), math::ToRadians(135.f), 7.f, { 0.f, 0.f, 0.f }, { 0.f, 1.f, 0.f }, { math::ToRadians(4.f), math::ToRadians(175.f) }, { 3.f, 25.f })
 	, m_dirLight()
 	, m_spotLight()
-	, m_pointLight()
+	, m_pointLights()
 	, m_sphere()
 	, m_plane()
 	, m_crate()
@@ -76,8 +76,8 @@ void TextureDemoApp::InitMatrices()
 void TextureDemoApp::InitShaders()
 {
 	// read pre-compiled shaders' bytecode
-	std::future<file::BinaryFile> psByteCodeFuture = file::ReadBinaryFile(std::wstring(GetRootDir()).append(L"\\lights_demo_PS.cso"));
-	std::future<file::BinaryFile> vsByteCodeFuture = file::ReadBinaryFile(std::wstring(GetRootDir()).append(L"\\lights_demo_VS.cso"));
+	std::future<file::BinaryFile> psByteCodeFuture = file::ReadBinaryFile(std::wstring(GetRootDir()).append(L"\\textures_demo_PS.cso"));
+	std::future<file::BinaryFile> vsByteCodeFuture = file::ReadBinaryFile(std::wstring(GetRootDir()).append(L"\\textures_demo_VS.cso"));
 
 	// future.get() can be called only once
 	file::BinaryFile vsByteCode = vsByteCodeFuture.get();
@@ -92,13 +92,16 @@ void TextureDemoApp::InitShaders()
 	// 		float3 posL : POSITION;
 	// 		float3 normalL : NORMAL;
 	// 	};
+
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(mesh::MeshData::Vertex, normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,	0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT,	0, offsetof(xtest::mesh::MeshData::Vertex, normal),		D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,	0, offsetof(xtest::mesh::MeshData::Vertex, tangentU),	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,		0, offsetof(xtest::mesh::MeshData::Vertex, uv),			D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
-	XTEST_D3D_CHECK(m_d3dDevice->CreateInputLayout(vertexDesc, 2, vsByteCode.Data(), vsByteCode.ByteSize(), &m_inputLayout));
 
+	XTEST_D3D_CHECK(m_d3dDevice->CreateInputLayout(vertexDesc, 4, vsByteCode.Data(), vsByteCode.ByteSize(), &m_inputLayout));
 
 	// perFrameCB
 	D3D11_BUFFER_DESC perFrameCBDesc;
@@ -109,6 +112,20 @@ void TextureDemoApp::InitShaders()
 	perFrameCBDesc.MiscFlags = 0;
 	perFrameCBDesc.StructureByteStride = 0;
 	XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&perFrameCBDesc, nullptr, &m_d3dPerFrameCB));
+
+
+	D3D11_SAMPLER_DESC samplerDesc;
+	ZeroMemory(&samplerDesc,sizeof(D3D11_SAMPLER_DESC));
+
+	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.MaxAnisotropy = 16;
+	samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	XTEST_D3D_CHECK(m_d3dDevice->CreateSamplerState(&samplerDesc,&m_textureSampler));
 }
 
 
@@ -119,6 +136,12 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 	{
 		// geo
 		m_plane.mesh = mesh::GeneratePlane(50.f, 50.f, 50, 50);
+		//CreateWICTextureFromFile(m_d3dDevice.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_color.png)").c_str(), NULL, &m_plane.diffuse_texture_view, NULL);
+		//CreateWICTextureFromFile(m_d3dDevice.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_norm.png)").c_str(), NULL, &m_plane.normal_texture_view, NULL);
+		//CreateWICTextureFromFile(m_d3dDevice.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_gloss.png)").c_str(), NULL, &m_plane.gloss_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_color.png)").c_str(), NULL, &m_plane.diffuse_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_norm.png)").c_str(), NULL, &m_plane.normal_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_gloss.png)").c_str(), NULL, &m_plane.gloss_texture_view, NULL);
 
 
 		// W
@@ -127,9 +150,9 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 
 		// material
 		m_plane.material.ambient = { 0.15f, 0.15f, 0.15f, 1.f };
-		m_plane.material.diffuse = { 0.52f, 0.52f, 0.52f, 1.f };
+		m_plane.material.diffuse = { 0.77f, 0.77f, 0.77f, 1.f };
 		m_plane.material.specular = { 0.8f, 0.8f, 0.8f, 190.0f };
-
+		m_plane.material.options = { 1,20,0,0 };
 
 		// perObjectCB
 		D3D11_BUFFER_DESC perObjectCBDesc;
@@ -176,6 +199,9 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 
 		//geo
 		m_sphere.mesh = mesh::GenerateSphere(1.f, 40, 40); // mesh::GenerateBox(2, 2, 2);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), GetRootDir().append(LR"(\3d-objects\lava\lava_color.png)").c_str(), NULL, &m_sphere.diffuse_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), GetRootDir().append(LR"(\3d-objects\lava\lava_norm.png)").c_str(), NULL, &m_sphere.normal_texture_view, NULL);
+
 
 
 		// W
@@ -183,8 +209,9 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 
 		// material
 		m_sphere.material.ambient = { 0.7f, 0.1f, 0.1f, 1.0f };
-		m_sphere.material.diffuse = { 0.81f, 0.15f, 0.15f, 1.0f };
+		m_sphere.material.diffuse = { 1.00f, 1.00f, 1.00f, 1.0f };
 		m_sphere.material.specular = { 0.7f, 0.7f, 0.7f, 40.0f };
+		m_sphere.material.options = { 1, 2, 0, 0 };
 
 
 		// perObjectCB
@@ -210,7 +237,6 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 		D3D11_SUBRESOURCE_DATA vertexInitData;
 		vertexInitData.pSysMem = &m_sphere.mesh.vertices[0];
 		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&vertexBufferDesc, &vertexInitData, &m_sphere.d3dVertexBuffer));
-
 
 		// index buffer
 		D3D11_BUFFER_DESC indexBufferDesc;
@@ -247,30 +273,35 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 		bottomMat.ambient = { 0.8f, 0.3f, 0.1f, 1.0f };
 		bottomMat.diffuse = { 0.94f, 0.40f, 0.14f, 1.0f };
 		bottomMat.specular = { 0.94f, 0.40f, 0.14f, 30.0f };
+		bottomMat.options = { 0, 0, 0, 0 };
 
 		//top material
 		Material& topMat = m_crate.shapeAttributeMapByName["top_2"].material;
 		topMat.ambient = { 0.8f, 0.8f, 0.8f, 1.0f };
 		topMat.diffuse = { 0.9f, 0.9f, 0.9f, 1.0f };
 		topMat.specular = { 0.9f, 0.9f, 0.9f, 550.0f };
+		topMat.options = { 0, 0, 0, 0 };
 
 		//top handles material
 		Material& topHandleMat = m_crate.shapeAttributeMapByName["top_handles_4"].material;
 		topHandleMat.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
 		topHandleMat.diffuse = { 0.4f, 0.4f, 0.4f, 1.0f };
 		topHandleMat.specular = { 0.9f, 0.9f, 0.9f, 120.0f };
+		topHandleMat.options = { 0, 0, 0, 0 };
 
 		//handle material
 		Material& handleMat = m_crate.shapeAttributeMapByName["handles_8"].material;
 		handleMat.ambient = { 0.5f, 0.5f, 0.1f, 1.0f };
 		handleMat.diffuse = { 0.67f, 0.61f, 0.1f, 1.0f };
 		handleMat.specular = { 0.67f, 0.61f, 0.1f, 200.0f };
+		handleMat.options = { 0, 0, 0, 0 };
 
 		//metal material
 		Material& metalPiecesMat = m_crate.shapeAttributeMapByName["metal_pieces_3"].material;
 		metalPiecesMat.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
 		metalPiecesMat.diffuse = { 0.4f, 0.4f, 0.4f, 1.0f };
 		metalPiecesMat.specular = { 0.4f, 0.4f, 0.4f, 520.0f };
+		metalPiecesMat.options = { 0, 0, 0, 0 };
 
 
 
@@ -331,13 +362,32 @@ void TextureDemoApp::InitLights()
 	XMVECTOR dirLightDirection = XMVector3Normalize(-XMVectorSet(5.f, 3.f, 5.f, 0.f));
 	XMStoreFloat3(&m_dirLight.dirW, dirLightDirection);
 
+	PointLight pointLight;
 
-	m_pointLight.ambient = { 0.18f, 0.04f, 0.16f, 1.0f };
-	m_pointLight.diffuse = { 0.94f, 0.23f, 0.87f, 1.0f };
-	m_pointLight.specular = { 0.94f, 0.23f, 0.87f, 1.0f };
-	m_pointLight.posW = { -5.f, 2.f, 5.f };
-	m_pointLight.range = 15.f;
-	m_pointLight.attenuation = { 0.0f, 0.2f, 0.f };
+
+
+	pointLight.ambient = { 0.18f, 0.18f, 0.18f, 1.0f };
+	pointLight.diffuse = { 0.94f, 0.94f, 0.94f, 1.0f };
+	pointLight.specular = { 0.94f, 0.94f, 0.94f, 1.0f };
+
+	pointLight.range = 15.f;
+	pointLight.attenuation = { 0.2f, 0.2f, 0.2f };
+
+	pointLight.posW = { 0, 2.f, 0 };
+	m_pointLights[0] = pointLight;
+
+	pointLight.posW = { -8.f, 2.f, 8.f };
+	m_pointLights[1] = pointLight;
+
+	pointLight.posW = { 5.f, 2.f, 5.f };
+	m_pointLights[2] = pointLight;
+
+
+	pointLight.posW = { 5.f, 2.f, -5.f };
+	m_pointLights[3] = pointLight;
+
+	pointLight.posW = { -8.f, 2.f, -8.f };
+	m_pointLights[4] = pointLight;
 
 
 	m_spotLight.ambient = { 0.018f, 0.018f, 0.18f, 1.0f };
@@ -567,7 +617,10 @@ void TextureDemoApp::UpdateScene(float deltaSeconds)
 		if (!m_stopLights)
 		{
 			XMMATRIX R = XMMatrixRotationY(math::ToRadians(30.f) * deltaSeconds);
-			XMStoreFloat3(&m_pointLight.posW, XMVector3Transform(XMLoadFloat3(&m_pointLight.posW), R));
+
+			for (int i = 0; i < 5; i++) {
+				XMStoreFloat3(&m_pointLights[i].posW, XMVector3Transform(XMLoadFloat3(&m_pointLights[i].posW), R));
+			}
 
 			R = XMMatrixRotationAxis(XMVectorSet(-1.f, 0.f, 1.f, 1.f), math::ToRadians(10.f) * deltaSeconds);
 			XMStoreFloat3(&m_dirLight.dirW, XMVector3Transform(XMLoadFloat3(&m_dirLight.dirW), R));
@@ -583,7 +636,7 @@ void TextureDemoApp::UpdateScene(float deltaSeconds)
 		//update the data
 		perFrameCB->dirLight = m_dirLight;
 		perFrameCB->spotLight = m_spotLight;
-		perFrameCB->pointLight = m_pointLight;
+		perFrameCB->pointLights = m_pointLights;
 		perFrameCB->eyePosW = m_camera.GetPosition();
 
 		// enable gpu access
@@ -633,6 +686,7 @@ void TextureDemoApp::RenderScene()
 	m_d3dContext->IASetInputLayout(m_inputLayout.Get());
 	m_d3dContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
 	m_d3dContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+	m_d3dContext->PSSetSamplers(0, 1, m_textureSampler.GetAddressOf());
 
 	m_d3dContext->PSSetConstantBuffers(1, 1, m_d3dPerFrameCB.GetAddressOf());
 	m_d3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -642,6 +696,10 @@ void TextureDemoApp::RenderScene()
 		// bind the constant data to the vertex shader
 		m_d3dContext->VSSetConstantBuffers(0, 1, m_plane.d3dPerObjectCB.GetAddressOf());
 		m_d3dContext->PSSetConstantBuffers(0, 1, m_plane.d3dPerObjectCB.GetAddressOf());
+
+		m_d3dContext->PSSetShaderResources(0, 1, m_plane.diffuse_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(1, 1, m_plane.normal_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(2, 1, m_plane.gloss_texture_view.GetAddressOf());
 
 		// set what to draw
 		UINT stride = sizeof(mesh::MeshData::Vertex);
@@ -658,6 +716,11 @@ void TextureDemoApp::RenderScene()
 		// bind the constant data to the vertex shader
 		m_d3dContext->VSSetConstantBuffers(0, 1, m_sphere.d3dPerObjectCB.GetAddressOf());
 		m_d3dContext->PSSetConstantBuffers(0, 1, m_sphere.d3dPerObjectCB.GetAddressOf());
+
+		m_d3dContext->PSSetShaderResources(0, 1, m_sphere.diffuse_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(1, 1, m_sphere.normal_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(2, 1, m_sphere.gloss_texture_view.GetAddressOf());
+
 
 		// set what to draw
 		UINT stride = sizeof(mesh::MeshData::Vertex);
@@ -676,6 +739,10 @@ void TextureDemoApp::RenderScene()
 		UINT offset = 0;
 		m_d3dContext->IASetVertexBuffers(0, 1, m_crate.d3dVertexBuffer.GetAddressOf(), &stride, &offset);
 		m_d3dContext->IASetIndexBuffer(m_crate.d3dIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+		m_d3dContext->PSSetShaderResources(0, 1, m_crate.diffuse_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(1, 1, m_crate.normal_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(2, 1, m_crate.gloss_texture_view.GetAddressOf());
 
 		for (const auto& namePairWithDesc : m_crate.mesh.meshDescriptorMapByName)
 		{

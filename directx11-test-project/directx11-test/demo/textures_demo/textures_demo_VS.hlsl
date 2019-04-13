@@ -8,15 +8,19 @@ struct Material
 
 struct VertexIn
 {
-	float3 posL : POSITION;
-	float3 normalL : NORMAL;
+	float3 posL		: POSITION;
+	float3 normalL	: NORMAL;
+	float3 tangentL	: TANGENT;
+	float2 uv		: TEXCOORD;
 };
 
 struct VertexOut
 {
-	float4 posH : SV_POSITION;
-	float3 posW : POSITION;
-	float3 normalW : NORMAL;
+	float4 posH		: SV_POSITION;
+	float3 posW		: POSITION;
+	float3 normalW	: NORMAL;
+	float3 tangentW	: TANGENT;
+	float2 uv		: TEXCOORD;
 };
 
 
@@ -37,5 +41,8 @@ VertexOut main(VertexIn vin)
 	vout.normalW = mul(vin.normalL, (float3x3)W_inverseTraspose);
 	vout.posH = mul(float4(vin.posL, 1.0f), WVP);
 
+	vout.tangentW = mul(vin.tangentL, (float3x3)W_inverseTraspose);
+
+	vout.uv = vin.uv;
 	return vout;
 }
