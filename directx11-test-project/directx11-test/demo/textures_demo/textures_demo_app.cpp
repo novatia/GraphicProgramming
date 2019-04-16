@@ -131,6 +131,63 @@ void TextureDemoApp::InitShaders()
 
 void xtest::demo::TextureDemoApp::InitRenderable()
 {
+	{
+		m_torus.mesh = mesh::GenerateTorus(5, 4, 10, 10);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_color.png)").c_str(), NULL, &m_torus.diffuse_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_norm.png)").c_str(), NULL, &m_torus.normal_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_gloss.png)").c_str(), NULL, &m_torus.gloss_texture_view, NULL);
+
+		// W
+		XMStoreFloat4x4(&m_torus.W, XMMatrixTranslation(4.f, 2.f, 2.f));
+
+		// material
+		m_torus.material.ambient = { 0.15f, 0.15f, 0.15f, 1.f };
+		m_torus.material.diffuse = { 0.77f, 0.77f, 0.77f, 1.f };
+		m_torus.material.specular = { 0.8f, 0.8f, 0.8f, 190.0f };
+		m_torus.material.options = { 1,20,0,0 };
+
+		// perObjectCB
+		D3D11_BUFFER_DESC perObjectCBDesc;
+		perObjectCBDesc.Usage = D3D11_USAGE_DYNAMIC;
+		perObjectCBDesc.ByteWidth = sizeof(PerObjectCB);
+		perObjectCBDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		perObjectCBDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		perObjectCBDesc.MiscFlags = 0;
+		perObjectCBDesc.StructureByteStride = 0;
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&perObjectCBDesc, nullptr, &m_torus.d3dPerObjectCB));
+
+
+		// vertex buffer
+		D3D11_BUFFER_DESC vertexBufferDesc;
+		vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		vertexBufferDesc.ByteWidth = UINT(sizeof(mesh::MeshData::Vertex) * m_torus.mesh.vertices.size());
+		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBufferDesc.CPUAccessFlags = 0;
+		vertexBufferDesc.MiscFlags = 0;
+		vertexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA vertexInitData;
+		vertexInitData.pSysMem = &m_torus.mesh.vertices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&vertexBufferDesc, &vertexInitData, &m_torus.d3dVertexBuffer));
+
+
+		// index buffer
+		D3D11_BUFFER_DESC indexBufferDesc;
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.ByteWidth = UINT(sizeof(uint32) * m_torus.mesh.indices.size());
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA indexInitdata;
+		indexInitdata.pSysMem = &m_torus.mesh.indices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&indexBufferDesc, &indexInitdata, &m_torus.d3dIndexBuffer));
+
+
+	}
+
+
 
 	// plane
 	{

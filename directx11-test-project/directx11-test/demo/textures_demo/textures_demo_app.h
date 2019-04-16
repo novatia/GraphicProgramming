@@ -170,6 +170,8 @@ namespace xtest {
 			Renderable m_sphere;
 			Renderable m_plane;
 			GPFRenderable m_crate;
+			Renderable m_torus;
+			Renderable m_box;
 
 			Microsoft::WRL::ComPtr<ID3D11Buffer> m_d3dPerFrameCB;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> m_d3dRarelyChangedCB;
