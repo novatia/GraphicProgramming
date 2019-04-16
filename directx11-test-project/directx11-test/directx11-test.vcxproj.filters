@@ -269,6 +269,5 @@
     <None Include="math\math_utils.inl">
       <Filter>math</Filter>
     </None>
-    <None Include="packages.config" />
   </ItemGroup>
 </Project>

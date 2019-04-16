@@ -158,6 +158,133 @@ xtest::mesh::MeshData xtest::mesh::GenerateSphere(float radius, uint32 sliceCoun
 }
 
 
+xtest::mesh::MeshData xtest::mesh::GenerateTorus(float max_radius, float min_radius, uint32 sliceCount, uint32 stackCount)
+{
+	assert(sliceCount > 3);
+	assert(stackCount > 0.0f);
+	assert(max_radius > min_radius);
+	assert(min_radius > 0.0f);
+
+	const float phiStep		= 2.0f * XM_PI /  sliceCount;
+	const float thetaStep	= 2.0f * XM_PI / (sliceCount*2+2);
+	float torus_radius = (max_radius - min_radius) / 2.0f;
+	const float d = (min_radius + torus_radius);
+
+	MeshData mesh;
+
+	
+	// poles vertices
+	MeshData::Vertex topVertex;
+	MeshData::Vertex bottomVertex;
+
+	for (uint32 slice = 0; slice <= sliceCount; ++slice)
+	{
+		float phi = slice * phiStep;
+
+		MeshData::Vertex top_vertex;
+		
+		top_vertex.position.x = min_radius * cosf(phi);
+		top_vertex.position.y = torus_radius;
+		top_vertex.position.z = min_radius * sinf(phi);
+		topVertex.push_back(top_vertex);
+
+		MeshData::Vertex bottom_vertex;
+
+		bottom_vertex.position.x = min_radius * cosf(phi);
+		bottom_vertex.position.y = -torus_radius;
+		bottom_vertex.position.z = min_radius * sinf(phi);
+		bottomVertex.push_back(bottom_vertex);
+	}
+	
+	mesh.vertices.push_back(topVertex);
+	mesh.vertices.push_back(bottomVertex);
+	
+	for (uint32 slice = 0; slice <= sliceCount; ++slice)
+	{
+			float phi = slice * phiStep;
+
+			DirectX::XMFLOAT3 C;
+
+			C.x = ;
+			C.y = ;
+			C.z = ;
+
+
+			for (uint32 stack = 0; stack <= stackCount; ++stack) {
+				float theta = stack * thetaStep;
+
+				MeshData::Vertex v1;
+				v1.position.y = torus_radius * sinf(theta);
+				v1.position.z = torus_radius * cosf(theta);
+				v1.position.x = 0;
+				
+				// Partial derivative of P with respect to theta
+				v1.tangentU.x = -torus_radius * sinf(theta)*sinf(theta);
+				v1.tangentU.y = 0.0f;
+				v1.tangentU.z = +radius * sinf(phi)*cosf(theta);
+
+				XMVECTOR tangentU = XMLoadFloat3(&vertex.tangentU);
+				XMStoreFloat3(&vertex.tangentU, XMVector3Normalize(tangentU));
+
+				XMVECTOR position = XMLoadFloat3(&vertex.position);
+				XMStoreFloat3(&vertex.normal, XMVector3Normalize(position));
+
+				vertex.uv.x = theta / XM_2PI;
+				vertex.uv.y = phi / XM_PI;
+
+				MeshData::Vertex v2;
+
+				mesh.vertices.push_back(vertex);
+			}
+		}
+	}
+
+	mesh.vertices.push_back(bottomVertex);
+
+
+	// top indices
+	for (uint32 slice = 1; slice <= sliceCount; ++slice)
+	{
+		mesh.indices.push_back(0);
+		mesh.indices.push_back(slice + 1);
+		mesh.indices.push_back(slice);
+	}
+
+	// stacks indices
+	uint32 baseIndex = 1;
+	uint32 ringVertexCount = sliceCount + 1;
+	for (uint32 stack = 0; stack < stackCount - 2; ++stack)
+	{
+		for (uint32 slice = 0; slice < sliceCount; ++slice)
+		{
+			mesh.indices.push_back(baseIndex + stack * ringVertexCount + slice);
+			mesh.indices.push_back(baseIndex + stack * ringVertexCount + slice + 1);
+			mesh.indices.push_back(baseIndex + (stack + 1)*ringVertexCount + slice);
+
+			mesh.indices.push_back(baseIndex + (stack + 1)*ringVertexCount + slice);
+			mesh.indices.push_back(baseIndex + stack * ringVertexCount + slice + 1);
+			mesh.indices.push_back(baseIndex + (stack + 1)*ringVertexCount + slice + 1);
+		}
+	}
+
+
+	// South pole vertex was added last.
+	uint32 southPoleIndex = uint32(mesh.vertices.size() - 1);
+
+	// Offset the indices to the index of the first vertex in the last ring.
+	baseIndex = southPoleIndex - ringVertexCount;
+
+	for (uint32 slice = 0; slice < sliceCount; ++slice)
+	{
+		mesh.indices.push_back(southPoleIndex);
+		mesh.indices.push_back(baseIndex + slice);
+		mesh.indices.push_back(baseIndex + slice + 1);
+	}
+
+	return mesh;
+}
+
+
 xtest::mesh::MeshData xtest::mesh::GenerateBox(float xLength, float yLength, float zLength)
 {
 	MeshData mesh;

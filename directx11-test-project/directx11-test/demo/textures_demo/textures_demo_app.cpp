@@ -3,7 +3,7 @@
 #include <file/file_utils.h>
 #include <math/math_utils.h>
 #include <service/locator.h>
-#include <WICTextureLoader.h>
+#include <external_libs\directxtk\WICTextureLoader.h>
 
 using namespace DirectX;
 using namespace xtest;
