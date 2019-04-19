@@ -3,7 +3,7 @@ struct Material
 	float4 ambient;
 	float4 diffuse;
 	float4 specular;
-	float4 options; //0 has texture //1 texture tiles //2,3 unused
+	float4 options; //0 has texture //1 texture tiles //2 displace //3 animated
 };
 
 struct DirectionalLight
@@ -43,6 +43,8 @@ struct VertexOut
 	float3 normalW	: NORMAL;
 	float3 tangentW	: TANGENT;
 	float2 uv		: TEXCOORD;
+	float2 uvAnim		: TEXCOORD1;
+	
 };
 
 
@@ -222,6 +224,7 @@ void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 no
 Texture2D diffuseTexture: register(t0);
 Texture2D normalTexture: register(t1);
 Texture2D glossTexture: register(t2);
+Texture2D animatedTexture: register(t3);
 
 SamplerState textureSampler: register(s0);
 
@@ -256,19 +259,34 @@ float4 main(VertexOut pin) : SV_TARGET
 	pin.tangentW = normalize(pin.tangentW);
 
 	
-	if (material.options.x == 0) {
-		//reset textures
-		glossSample = -1;
-		normalBW = pin.normalW;
-		diffuseColor = 1;
-	}
-	else {
+	 if (material.options.x == 1 || material.options.x == 3) {
 		pin.uv *= material.options.y;
 
-		diffuseColor = diffuseTexture.Sample(textureSampler, pin.uv);
+		
 		normalBW = BumpNormalW(pin.uv, pin.normalW, pin.tangentW);
 		glossSample = glossTexture.Sample(textureSampler, pin.uv).r;
-	}
+		diffuseColor = diffuseTexture.Sample(textureSampler, pin.uv);
+
+		if (material.options.x == 3) {
+			float4 animatedColor = animatedTexture.Sample(textureSampler, pin.uvAnim);
+			if (animatedColor.x>0.015 && animatedColor.y > 0.015 && animatedColor.z > 0.015)
+				diffuseColor = animatedColor;
+		}
+		
+
+	 } else if (material.options.x == 2) {
+		 pin.uv *= material.options.y;
+
+		 diffuseColor = diffuseTexture.Sample(textureSampler, pin.uv);
+		 normalBW = BumpNormalW(pin.uv, pin.normalW, pin.tangentW);
+		 glossSample = -1;
+	 } else
+	 {
+		 //reset textures
+		 glossSample = -1;
+		 normalBW = pin.normalW;
+		 diffuseColor = 1;
+	 }
 
 
 	if (useDirLight)

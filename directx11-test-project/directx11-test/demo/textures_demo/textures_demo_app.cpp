@@ -131,20 +131,22 @@ void TextureDemoApp::InitShaders()
 
 void xtest::demo::TextureDemoApp::InitRenderable()
 {
+
+	//TORUS
 	{
-		m_torus.mesh = mesh::GenerateTorus(5, 4, 10, 10);
-		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_color.png)").c_str(), NULL, &m_torus.diffuse_texture_view, NULL);
-		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_norm.png)").c_str(), NULL, &m_torus.normal_texture_view, NULL);
-		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\tiles\tiles_gloss.png)").c_str(), NULL, &m_torus.gloss_texture_view, NULL);
+		m_torus.mesh = mesh::GenerateTorus(4, 0.2f, 500);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\wood\wood_color.png)").c_str(), NULL, &m_torus.diffuse_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\wood\wood_norm.png)").c_str(), NULL, &m_torus.normal_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\wood\wood_gloss.png)").c_str(), NULL, &m_torus.gloss_texture_view, NULL);
 
 		// W
-		XMStoreFloat4x4(&m_torus.W, XMMatrixTranslation(4.f, 2.f, 2.f));
+		XMStoreFloat4x4(&m_torus.W, XMMatrixMultiply(XMMatrixScaling(1.0f,1.0f, 1.0f), XMMatrixTranslation(0.f, 1.f, 0.f)));
 
 		// material
-		m_torus.material.ambient = { 0.15f, 0.15f, 0.15f, 1.f };
-		m_torus.material.diffuse = { 0.77f, 0.77f, 0.77f, 1.f };
+		m_torus.material.ambient  = { 0.15f, 0.15f, 0.15f, 1.f };
+		m_torus.material.diffuse  = { 0.77f, 0.77f, 0.77f, 1.f };
 		m_torus.material.specular = { 0.8f, 0.8f, 0.8f, 190.0f };
-		m_torus.material.options = { 1,20,0,0 };
+		m_torus.material.options  = { 1,0.8f,0,0 };
 
 		// perObjectCB
 		D3D11_BUFFER_DESC perObjectCBDesc;
@@ -183,11 +185,7 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 		D3D11_SUBRESOURCE_DATA indexInitdata;
 		indexInitdata.pSysMem = &m_torus.mesh.indices[0];
 		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&indexBufferDesc, &indexInitdata, &m_torus.d3dIndexBuffer));
-
-
 	}
-
-
 
 	// plane
 	{
@@ -251,6 +249,243 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 	}
 
 
+	// cube 1
+	{
+		// geo
+		m_box1.mesh = mesh::GenerateBox(1.0f, 10.f, 1.f);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_color.png)").c_str(), NULL, &m_box1.diffuse_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_norm.png)").c_str(), NULL, &m_box1.normal_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_gloss.png)").c_str(), NULL, &m_box1.gloss_texture_view, NULL);
+
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\plasma.jpg)").c_str(), NULL, &m_box1.animated_texture_view, NULL);
+
+		// W
+		XMStoreFloat4x4(&m_box1.W, XMMatrixMultiply(XMMatrixScaling(1.0f, 1.0f, 1.0f), XMMatrixTranslation(8.f, 5.f, 8.f)));
+
+		// material
+		m_box1.material.ambient = { 0.15f , 0.15f, 0.15f, 1.f };
+		m_box1.material.diffuse = { 0.77f , 0.77f, 0.77f, 1.f };
+		m_box1.material.specular = { 0.8f  , 0.8f , 0.8f , 190.0f };
+		m_box1.material.options = { 3, 1.2f, 0    , 0 };
+
+		// perObjectCB
+		D3D11_BUFFER_DESC perObjectCBDesc;
+		perObjectCBDesc.Usage = D3D11_USAGE_DYNAMIC;
+		perObjectCBDesc.ByteWidth = sizeof(PerObjectCB);
+		perObjectCBDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		perObjectCBDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		perObjectCBDesc.MiscFlags = 0;
+		perObjectCBDesc.StructureByteStride = 0;
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&perObjectCBDesc, nullptr, &m_box1.d3dPerObjectCB));
+
+
+		// vertex buffer
+		D3D11_BUFFER_DESC vertexBufferDesc;
+		vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		vertexBufferDesc.ByteWidth = UINT(sizeof(mesh::MeshData::Vertex) * m_box1.mesh.vertices.size());
+		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBufferDesc.CPUAccessFlags = 0;
+		vertexBufferDesc.MiscFlags = 0;
+		vertexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA vertexInitData;
+		vertexInitData.pSysMem = &m_box1.mesh.vertices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&vertexBufferDesc, &vertexInitData, &m_box1.d3dVertexBuffer));
+
+
+		// index buffer
+		D3D11_BUFFER_DESC indexBufferDesc;
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.ByteWidth = UINT(sizeof(uint32) * m_box1.mesh.indices.size());
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA indexInitdata;
+		indexInitdata.pSysMem = &m_box1.mesh.indices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&indexBufferDesc, &indexInitdata, &m_box1.d3dIndexBuffer));
+	}
+
+	// cube 2
+	{
+		// geo
+		m_box2.mesh = mesh::GenerateBox(1.0f, 10.f, 1.f);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_color.png)").c_str(), NULL, &m_box2.diffuse_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_norm.png)").c_str(), NULL, &m_box2.normal_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_gloss.png)").c_str(), NULL, &m_box2.gloss_texture_view, NULL);
+
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\waves.jpg)").c_str(), NULL, &m_box2.animated_texture_view, NULL);
+
+		// W
+		XMStoreFloat4x4(&m_box2.W, XMMatrixMultiply( XMMatrixScaling(1.0f, 1.0f, 1.0f), XMMatrixTranslation(-8.f, 5.f, 8.f)));
+
+		// material
+		m_box2.material.ambient = { 0.15f, 0.15f, 0.15f, 1.f };
+		m_box2.material.diffuse = { 0.77f, 0.77f, 0.77f, 1.f };
+		m_box2.material.specular = { 0.8f, 0.8f, 0.8f, 190.0f };
+		m_box2.material.options = { 3, 1.2f, 0, 0 };
+
+		// perObjectCB
+		D3D11_BUFFER_DESC perObjectCBDesc;
+		perObjectCBDesc.Usage = D3D11_USAGE_DYNAMIC;
+		perObjectCBDesc.ByteWidth = sizeof(PerObjectCB);
+		perObjectCBDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		perObjectCBDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		perObjectCBDesc.MiscFlags = 0;
+		perObjectCBDesc.StructureByteStride = 0;
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&perObjectCBDesc, nullptr, &m_box2.d3dPerObjectCB));
+
+
+		// vertex buffer
+		D3D11_BUFFER_DESC vertexBufferDesc;
+		vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		vertexBufferDesc.ByteWidth = UINT(sizeof(mesh::MeshData::Vertex) * m_box2.mesh.vertices.size());
+		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBufferDesc.CPUAccessFlags = 0;
+		vertexBufferDesc.MiscFlags = 0;
+		vertexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA vertexInitData;
+		vertexInitData.pSysMem = &m_box2.mesh.vertices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&vertexBufferDesc, &vertexInitData, &m_box2.d3dVertexBuffer));
+
+
+		// index buffer
+		D3D11_BUFFER_DESC indexBufferDesc;
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.ByteWidth = UINT(sizeof(uint32) * m_box2.mesh.indices.size());
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA indexInitdata;
+		indexInitdata.pSysMem = &m_box2.mesh.indices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&indexBufferDesc, &indexInitdata, &m_box2.d3dIndexBuffer));
+	}
+
+	// cube 3
+	{
+		// geo
+		m_box3.mesh = mesh::GenerateBox(1.0f, 10.f, 1.f);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_color.png)").c_str(), NULL, &m_box3.diffuse_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_norm.png)").c_str(), NULL, &m_box3.normal_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_gloss.png)").c_str(), NULL, &m_box3.gloss_texture_view, NULL);
+
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\waves.jpg)").c_str(), NULL, &m_box3.animated_texture_view, NULL);
+
+		// W
+		XMStoreFloat4x4(&m_box3.W, XMMatrixMultiply(XMMatrixScaling(1.0f, 1.0f, 1.0f), XMMatrixTranslation(-8.f, 5.f, -8.f)));
+
+		// material
+		m_box3.material.ambient = { 0.15f , 0.15f, 0.15f, 1.f };
+		m_box3.material.diffuse = { 0.77f , 0.77f, 0.77f, 1.f };
+		m_box3.material.specular = { 0.8f  , 0.8f , 0.8f , 190.0f };
+		m_box3.material.options = { 3, 1.2f, 0    , 0 };
+
+		// perObjectCB
+		D3D11_BUFFER_DESC perObjectCBDesc;
+		perObjectCBDesc.Usage = D3D11_USAGE_DYNAMIC;
+		perObjectCBDesc.ByteWidth = sizeof(PerObjectCB);
+		perObjectCBDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		perObjectCBDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		perObjectCBDesc.MiscFlags = 0;
+		perObjectCBDesc.StructureByteStride = 0;
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&perObjectCBDesc, nullptr, &m_box3.d3dPerObjectCB));
+
+
+		// vertex buffer
+		D3D11_BUFFER_DESC vertexBufferDesc;
+		vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		vertexBufferDesc.ByteWidth = UINT(sizeof(mesh::MeshData::Vertex) * m_box3.mesh.vertices.size());
+		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBufferDesc.CPUAccessFlags = 0;
+		vertexBufferDesc.MiscFlags = 0;
+		vertexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA vertexInitData;
+		vertexInitData.pSysMem = &m_box3.mesh.vertices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&vertexBufferDesc, &vertexInitData, &m_box3.d3dVertexBuffer));
+
+
+		// index buffer
+		D3D11_BUFFER_DESC indexBufferDesc;
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.ByteWidth = UINT(sizeof(uint32) * m_box3.mesh.indices.size());
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA indexInitdata;
+		indexInitdata.pSysMem = &m_box3.mesh.indices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&indexBufferDesc, &indexInitdata, &m_box3.d3dIndexBuffer));
+	}
+
+	// cube 4
+	{
+		// geo
+		m_box4.mesh = mesh::GenerateBox(1.0f, 10.f, 1.f);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_color.png)").c_str(), NULL, &m_box4.diffuse_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_norm.png)").c_str(), NULL, &m_box4.normal_texture_view, NULL);
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\lizard\lizard_gloss.png)").c_str(), NULL, &m_box4.gloss_texture_view, NULL);
+
+		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\plasma.jpg)").c_str(), NULL, &m_box4.animated_texture_view, NULL);
+
+		// W
+		XMStoreFloat4x4(&m_box4.W, XMMatrixMultiply(XMMatrixScaling(1.0f, 1.0f, 1.0f), XMMatrixTranslation(8.f, 5.f, -8.f)));
+
+		// material
+		m_box4.material.ambient = { 0.15f, 0.15f, 0.15f, 1.f };
+		m_box4.material.diffuse = { 0.77f, 0.77f, 0.77f, 1.f };
+		m_box4.material.specular = { 0.8f, 0.8f, 0.8f, 190.0f };
+		m_box4.material.options = { 3, 1.2f, 0, 0 };
+
+		// perObjectCB
+		D3D11_BUFFER_DESC perObjectCBDesc;
+		perObjectCBDesc.Usage = D3D11_USAGE_DYNAMIC;
+		perObjectCBDesc.ByteWidth = sizeof(PerObjectCB);
+		perObjectCBDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		perObjectCBDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		perObjectCBDesc.MiscFlags = 0;
+		perObjectCBDesc.StructureByteStride = 0;
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&perObjectCBDesc, nullptr, &m_box4.d3dPerObjectCB));
+
+
+		// vertex buffer
+		D3D11_BUFFER_DESC vertexBufferDesc;
+		vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		vertexBufferDesc.ByteWidth = UINT(sizeof(mesh::MeshData::Vertex) * m_box4.mesh.vertices.size());
+		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBufferDesc.CPUAccessFlags = 0;
+		vertexBufferDesc.MiscFlags = 0;
+		vertexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA vertexInitData;
+		vertexInitData.pSysMem = &m_box4.mesh.vertices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&vertexBufferDesc, &vertexInitData, &m_box4.d3dVertexBuffer));
+
+
+		// index buffer
+		D3D11_BUFFER_DESC indexBufferDesc;
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.ByteWidth = UINT(sizeof(uint32) * m_box4.mesh.indices.size());
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA indexInitdata;
+		indexInitdata.pSysMem = &m_box4.mesh.indices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&indexBufferDesc, &indexInitdata, &m_box4.d3dIndexBuffer));
+	}
+
+
+
+
+
+
 	// sphere
 	{
 
@@ -262,7 +497,7 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 
 
 		// W
-		XMStoreFloat4x4(&m_sphere.W, XMMatrixTranslation(-4.f, 1.f, 0.f));
+		XMStoreFloat4x4(&m_sphere.W, XMMatrixTranslation(0.f, 4.f, 0.f));
 
 		// material
 		m_sphere.material.ambient = { 0.7f, 0.1f, 0.1f, 1.0f };
@@ -322,7 +557,7 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 		}
 
 		// W
-		XMStoreFloat4x4(&m_crate.W, XMMatrixMultiply(XMMatrixScaling(0.01f, 0.01f, 0.01f), XMMatrixTranslation(0.f, 0.f, 0.f)));
+		XMStoreFloat4x4(&m_crate.W, XMMatrixMultiply( XMMatrixRotationRollPitchYaw(0.0f, 15.0f, 0.0f), XMMatrixMultiply(XMMatrixScaling(0.01f, 0.01f, 0.01f), XMMatrixTranslation(6.f, 0.f, 6.f))));
 
 
 		//bottom material
@@ -574,11 +809,12 @@ void TextureDemoApp::OnKeyStatusChange(input::Key key, const input::KeyStatus& s
 	}
 }
 
-
+float pos=0;
+float textureSpeed=0.2f;
 void TextureDemoApp::UpdateScene(float deltaSeconds)
 {
 	XTEST_UNUSED_VAR(deltaSeconds);
-
+	pos += textureSpeed * deltaSeconds;
 
 	// create the model-view-projection matrix
 	XMMATRIX V = m_camera.GetViewMatrix();
@@ -614,6 +850,103 @@ void TextureDemoApp::UpdateScene(float deltaSeconds)
 		m_d3dContext->Unmap(m_plane.d3dPerObjectCB.Get(), 0);
 	}
 
+	//BOX 1
+	{
+		XMMATRIX W = XMLoadFloat4x4(&m_box1.W);
+		XMMATRIX WVP = W * V * P;
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
+		// disable gpu access
+		XTEST_D3D_CHECK(m_d3dContext->Map(m_box1.d3dPerObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
+		PerObjectCB* perObjectCB = (PerObjectCB*)mappedResource.pData;
+
+		//update the data
+		XMStoreFloat4x4(&perObjectCB->W, XMMatrixTranspose(W));
+		XMStoreFloat4x4(&perObjectCB->WVP, XMMatrixTranspose(WVP));
+		XMStoreFloat4x4(&perObjectCB->W_inverseTraspose, XMMatrixInverse(nullptr, W));
+
+		XMStoreFloat4x4(&perObjectCB->TexcoordMatrix, XMMatrixTranspose(XMMatrixMultiply(XMMatrixScaling(1.f, 1.f, 1.f), XMMatrixTranslation(pos, pos, 0.0f))));
+
+		perObjectCB->material = m_box1.material;
+
+		// enable gpu access
+		m_d3dContext->Unmap(m_box1.d3dPerObjectCB.Get(), 0);
+	}
+	//BOX 2
+	{
+		XMMATRIX W = XMLoadFloat4x4(&m_box2.W);
+		XMMATRIX WVP = W * V * P;
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
+		// disable gpu access
+		XTEST_D3D_CHECK(m_d3dContext->Map(m_box2.d3dPerObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
+		PerObjectCB* perObjectCB = (PerObjectCB*)mappedResource.pData;
+
+		//update the data
+		XMStoreFloat4x4(&perObjectCB->W, XMMatrixTranspose(W));
+		XMStoreFloat4x4(&perObjectCB->WVP, XMMatrixTranspose(WVP));
+		XMStoreFloat4x4(&perObjectCB->W_inverseTraspose, XMMatrixInverse(nullptr, W));
+		XMStoreFloat4x4(&perObjectCB->TexcoordMatrix, XMMatrixTranspose(XMMatrixMultiply(XMMatrixScaling(1.f, 1.f, 1.f), XMMatrixTranslation(pos, pos, 0.0f))));
+
+		perObjectCB->material = m_box2.material;
+
+		// enable gpu access
+		m_d3dContext->Unmap(m_box2.d3dPerObjectCB.Get(), 0);
+	}
+
+
+	//BOX 3
+	{
+		XMMATRIX W = XMLoadFloat4x4(&m_box3.W);
+		XMMATRIX WVP = W * V * P;
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
+		// disable gpu access
+		XTEST_D3D_CHECK(m_d3dContext->Map(m_box3.d3dPerObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
+		PerObjectCB* perObjectCB = (PerObjectCB*)mappedResource.pData;
+
+		//update the data
+		XMStoreFloat4x4(&perObjectCB->W, XMMatrixTranspose(W));
+		XMStoreFloat4x4(&perObjectCB->WVP, XMMatrixTranspose(WVP));
+		XMStoreFloat4x4(&perObjectCB->W_inverseTraspose, XMMatrixInverse(nullptr, W));
+
+		XMStoreFloat4x4(&perObjectCB->TexcoordMatrix, XMMatrixTranspose(XMMatrixMultiply(XMMatrixScaling(1.f, 1.f, 1.f), XMMatrixTranslation(pos, pos, 0.0f))));
+
+		perObjectCB->material = m_box3.material;
+
+		// enable gpu access
+		m_d3dContext->Unmap(m_box3.d3dPerObjectCB.Get(), 0);
+	}
+	//BOX 4
+	{
+		XMMATRIX W = XMLoadFloat4x4(&m_box4.W);
+		XMMATRIX WVP = W * V * P;
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
+		// disable gpu access
+		XTEST_D3D_CHECK(m_d3dContext->Map(m_box4.d3dPerObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
+		PerObjectCB* perObjectCB = (PerObjectCB*)mappedResource.pData;
+
+		//update the data
+		XMStoreFloat4x4(&perObjectCB->W, XMMatrixTranspose(W));
+		XMStoreFloat4x4(&perObjectCB->WVP, XMMatrixTranspose(WVP));
+		XMStoreFloat4x4(&perObjectCB->W_inverseTraspose, XMMatrixInverse(nullptr, W));
+		XMStoreFloat4x4(&perObjectCB->TexcoordMatrix, XMMatrixTranspose(XMMatrixMultiply(XMMatrixScaling(1.f, 1.f, 1.f), XMMatrixTranslation(pos, pos, 0.0f))));
+
+		perObjectCB->material = m_box4.material;
+
+		// enable gpu access
+		m_d3dContext->Unmap(m_box4.d3dPerObjectCB.Get(), 0);
+	}
+
 
 	// sphere PerObjectCB
 	{
@@ -635,6 +968,29 @@ void TextureDemoApp::UpdateScene(float deltaSeconds)
 
 		// enable gpu access
 		m_d3dContext->Unmap(m_sphere.d3dPerObjectCB.Get(), 0);
+	}
+
+
+	// torus PerObjectCB
+	{
+		XMMATRIX W = XMLoadFloat4x4(&m_torus.W);
+		XMMATRIX WVP = W * V*P;
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
+		// disable gpu access
+		XTEST_D3D_CHECK(m_d3dContext->Map(m_torus.d3dPerObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
+		PerObjectCB* perObjectCB = (PerObjectCB*)mappedResource.pData;
+
+		//update the data
+		XMStoreFloat4x4(&perObjectCB->W, XMMatrixTranspose(W));
+		XMStoreFloat4x4(&perObjectCB->WVP, XMMatrixTranspose(WVP));
+		XMStoreFloat4x4(&perObjectCB->W_inverseTraspose, XMMatrixInverse(nullptr, W));
+		perObjectCB->material = m_torus.material;
+
+		// enable gpu access
+		m_d3dContext->Unmap(m_torus.d3dPerObjectCB.Get(), 0);
 	}
 
 
@@ -748,6 +1104,27 @@ void TextureDemoApp::RenderScene()
 	m_d3dContext->PSSetConstantBuffers(1, 1, m_d3dPerFrameCB.GetAddressOf());
 	m_d3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+
+	// draw thorus
+	{
+		// bind the constant data to the vertex shader
+		m_d3dContext->VSSetConstantBuffers(0, 1, m_torus.d3dPerObjectCB.GetAddressOf());
+		m_d3dContext->PSSetConstantBuffers(0, 1, m_torus.d3dPerObjectCB.GetAddressOf());
+
+		m_d3dContext->PSSetShaderResources(0, 1, m_torus.diffuse_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(1, 1, m_torus.normal_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(2, 1, m_torus.gloss_texture_view.GetAddressOf());
+
+
+		// set what to draw
+		UINT stride = sizeof(mesh::MeshData::Vertex);
+		UINT offset = 0;
+		m_d3dContext->IASetVertexBuffers(0, 1, m_torus.d3dVertexBuffer.GetAddressOf(), &stride, &offset);
+		m_d3dContext->IASetIndexBuffer(m_torus.d3dIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+		m_d3dContext->DrawIndexed(UINT(m_torus.mesh.indices.size()), 0, 0);
+	}
+
 	// draw plane
 	{
 		// bind the constant data to the vertex shader
@@ -766,6 +1143,95 @@ void TextureDemoApp::RenderScene()
 
 		m_d3dContext->DrawIndexed(UINT(m_plane.mesh.indices.size()), 0, 0);
 	}
+
+
+	// draw box1
+	{
+		// bind the constant data to the vertex shader
+		m_d3dContext->VSSetConstantBuffers(0, 1, m_box1.d3dPerObjectCB.GetAddressOf());
+		m_d3dContext->PSSetConstantBuffers(0, 1, m_box1.d3dPerObjectCB.GetAddressOf());
+
+		m_d3dContext->PSSetShaderResources(0, 1, m_box1.diffuse_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(1, 1, m_box1.normal_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(2, 1, m_box1.gloss_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(3, 1, m_box1.animated_texture_view.GetAddressOf());
+
+		// set what to draw
+		UINT stride = sizeof(mesh::MeshData::Vertex);
+		UINT offset = 0;
+		m_d3dContext->IASetVertexBuffers(0, 1, m_box1.d3dVertexBuffer.GetAddressOf(), &stride, &offset);
+		m_d3dContext->IASetIndexBuffer(m_box1.d3dIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+		m_d3dContext->DrawIndexed(UINT(m_box1.mesh.indices.size()), 0, 0);
+	}
+
+
+
+	// draw box2
+	{
+		// bind the constant data to the vertex shader
+		m_d3dContext->VSSetConstantBuffers(0, 1, m_box2.d3dPerObjectCB.GetAddressOf());
+		m_d3dContext->PSSetConstantBuffers(0, 1, m_box2.d3dPerObjectCB.GetAddressOf());
+
+		m_d3dContext->PSSetShaderResources(0, 1, m_box2.diffuse_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(1, 1, m_box2.normal_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(2, 1, m_box2.gloss_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(3, 1, m_box2.animated_texture_view.GetAddressOf());
+
+		// set what to draw
+		UINT stride = sizeof(mesh::MeshData::Vertex);
+		UINT offset = 0;
+		m_d3dContext->IASetVertexBuffers(0, 1, m_box2.d3dVertexBuffer.GetAddressOf(), &stride, &offset);
+		m_d3dContext->IASetIndexBuffer(m_box2.d3dIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+		m_d3dContext->DrawIndexed(UINT(m_box2.mesh.indices.size()), 0, 0);
+	}
+
+
+
+	// draw box3
+	{
+		// bind the constant data to the vertex shader
+		m_d3dContext->VSSetConstantBuffers(0, 1, m_box3.d3dPerObjectCB.GetAddressOf());
+		m_d3dContext->PSSetConstantBuffers(0, 1, m_box3.d3dPerObjectCB.GetAddressOf());
+
+		m_d3dContext->PSSetShaderResources(0, 1, m_box3.diffuse_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(1, 1, m_box3.normal_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(2, 1, m_box3.gloss_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(3, 1, m_box3.animated_texture_view.GetAddressOf());
+
+		// set what to draw
+		UINT stride = sizeof(mesh::MeshData::Vertex);
+		UINT offset = 0;
+		m_d3dContext->IASetVertexBuffers(0, 1, m_box3.d3dVertexBuffer.GetAddressOf(), &stride, &offset);
+		m_d3dContext->IASetIndexBuffer(m_box3.d3dIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+		m_d3dContext->DrawIndexed(UINT(m_box3.mesh.indices.size()), 0, 0);
+	}
+
+
+
+	// draw box4
+	{
+		// bind the constant data to the vertex shader
+		m_d3dContext->VSSetConstantBuffers(0, 1, m_box4.d3dPerObjectCB.GetAddressOf());
+		m_d3dContext->PSSetConstantBuffers(0, 1, m_box4.d3dPerObjectCB.GetAddressOf());
+
+		m_d3dContext->PSSetShaderResources(0, 1, m_box4.diffuse_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(1, 1, m_box4.normal_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(2, 1, m_box4.gloss_texture_view.GetAddressOf());
+		m_d3dContext->PSSetShaderResources(3, 1, m_box4.animated_texture_view.GetAddressOf());
+
+		// set what to draw
+		UINT stride = sizeof(mesh::MeshData::Vertex);
+		UINT offset = 0;
+		m_d3dContext->IASetVertexBuffers(0, 1, m_box4.d3dVertexBuffer.GetAddressOf(), &stride, &offset);
+		m_d3dContext->IASetIndexBuffer(m_box4.d3dIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+		m_d3dContext->DrawIndexed(UINT(m_box4.mesh.indices.size()), 0, 0);
+	}
+
+
 
 
 	// draw sphere
@@ -787,6 +1253,9 @@ void TextureDemoApp::RenderScene()
 
 		m_d3dContext->DrawIndexed(UINT(m_sphere.mesh.indices.size()), 0, 0);
 	}
+
+
+
 
 
 	// draw crate
@@ -815,6 +1284,7 @@ void TextureDemoApp::RenderScene()
 		}
 
 	}
+
 
 
 	XTEST_D3D_CHECK(m_swapChain->Present(0, 0));

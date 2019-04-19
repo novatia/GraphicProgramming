@@ -64,8 +64,6 @@ xtest::mesh::MeshData xtest::mesh::GeneratePlane(float xLength, float zLength, u
 	return mesh;
 }
 
-
-
 xtest::mesh::MeshData xtest::mesh::GenerateSphere(float radius, uint32 sliceCount, uint32 stackCount)
 {
 	// poles vertices
@@ -157,66 +155,96 @@ xtest::mesh::MeshData xtest::mesh::GenerateSphere(float radius, uint32 sliceCoun
 	return mesh;
 }
 
-
-xtest::mesh::MeshData xtest::mesh::GenerateTorus(float max_radius, float min_radius, uint32 sliceCount, uint32 stackCount)
+xtest::mesh::MeshData xtest::mesh::GenerateTorus(float max_radius, float min_radius, uint32 detailsCount)
 {
+
+	uint32 sliceCount = detailsCount;
+	uint32 stackCount = detailsCount;
+
 	assert(sliceCount > 3);
 	assert(stackCount > 0.0f);
 	assert(max_radius > min_radius);
 	assert(min_radius > 0.0f);
 
 	const float phiStep		= 2.0f * XM_PI /  sliceCount;
-	const float thetaStep	= 2.0f * XM_PI / (sliceCount*2+2);
+	const float thetaStep	= 2.0f * XM_PI /  stackCount;
+
 	float torus_radius = (max_radius - min_radius) / 2.0f;
 	const float d = (min_radius + torus_radius);
 
 	MeshData mesh;
 	
-	for (uint32 slice = 0; slice <= sliceCount; ++slice)
+	float phi_phase= XM_PI;
+	float theta_phase = XM_PI;
+
+	for (uint32 slice = 0; slice < sliceCount; ++slice)
 	{
-			float phi = slice * phiStep;
+			float phi = slice * phiStep + phi_phase;
 
 
-			for (uint32 stack = 0; stack <= stackCount; ++stack) {
-				float theta = stack * thetaStep;
+			for (uint32 stack = 0; stack < stackCount; ++stack) {
+				float theta = stack * thetaStep+theta_phase;
 
 				MeshData::Vertex v1;
-				v1.position.y = (d + torus_radius * cosf(theta))*cosf(phi);
+				v1.position.x = (d + torus_radius * cosf(theta))*cosf(phi);
 				v1.position.z = (d + torus_radius * cosf(theta))*sinf(phi);
-				v1.position.x =      torus_radius * sinf(theta);
+				v1.position.y =      torus_radius * sinf(theta);
 				
 				// Partial derivative of P with respect to theta
-				v1.tangentU.y = torus_radius * (-sinf(theta)*cosf(phi));
+				v1.tangentU.x = torus_radius * (-sinf(theta)*cosf(phi));
 				v1.tangentU.z = torus_radius * (-sinf(theta)*sinf(phi));
-				v1.tangentU.x = torus_radius *   cos(theta);
+				v1.tangentU.y = torus_radius *   cos(theta);
 			
-				v1.normal.y = cosf(phi)*cosf(theta);
+				v1.normal.x = cosf(phi)*cosf(theta);
 				v1.normal.z = sinf(phi)*cosf(theta);
-				v1.normal.x =           sinf(theta);
+				v1.normal.y = sinf(theta);
 
 				XMVECTOR tangentU = XMLoadFloat3(&v1.tangentU);
 				XMStoreFloat3(&v1.tangentU, XMVector3Normalize(tangentU));
 
-				XMVECTOR position = XMLoadFloat3(&v1.position);
-				XMStoreFloat3(&v1.normal, XMVector3Normalize(position));
+				///XMVECTOR position = XMLoadFloat3(&v1.position);
+				XMVECTOR normal = XMLoadFloat3(&v1.normal);
+				XMStoreFloat3(&v1.normal, XMVector3Normalize(normal));
 
 				v1.uv.x = theta / XM_2PI;
-				v1.uv.y = phi / XM_PI;
-
+				v1.uv.y = phi / XM_2PI;
 
 				mesh.vertices.push_back(v1);
 			}
 	}
 
 	// stacks indices
-	uint32 currentVertexOffset = 0;
-	for (uint32 stack = 0; stack < stackCount ; ++stack)
+	uint32  offset;
+	uint32  i0;
+	uint32  i1;
+	uint32  i2;
+	uint32  i3;
+	
+	uint32 MAX_INDEX = (stackCount - 1) + (sliceCount - 1)*sliceCount;
+
+	for (uint32 slice = 0; slice < sliceCount; ++slice)
 	{
-		for (uint32 slice = 0; slice <= sliceCount; ++slice)
+		for (uint32 i = 0; i < stackCount; ++i)
 		{
-			mesh.indices.push_back(currentVertexOffset);
-			mesh.indices.push_back(currentVertexOffset+ slice+1);
-			currentVertexOffset++;
+			offset = (i + slice * sliceCount);
+
+			i0 = offset;
+			i1 = offset + 1;
+			i2 = offset + stackCount;
+			i3 = offset + stackCount + 1;
+
+			i1 > MAX_INDEX ? i1 -= stackCount * stackCount : false;
+			i2 > MAX_INDEX ? i2 -= stackCount * stackCount : false;
+			i3 > MAX_INDEX ? i3 -= stackCount * stackCount : false;
+			
+
+			mesh.indices.push_back(i0);
+			mesh.indices.push_back(i1);
+			mesh.indices.push_back(i2);
+			
+			mesh.indices.push_back(i2);
+			mesh.indices.push_back(i1);
+			mesh.indices.push_back(i3);
 		}
 	}
 

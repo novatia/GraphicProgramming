@@ -102,6 +102,7 @@ namespace xtest {
 				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> diffuse_texture_view;
 				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> normal_texture_view;
 				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> gloss_texture_view;
+				Microsoft::WRL::ComPtr < ID3D11ShaderResourceView> animated_texture_view;
 			};
 
 
@@ -171,7 +172,13 @@ namespace xtest {
 			Renderable m_plane;
 			GPFRenderable m_crate;
 			Renderable m_torus;
-			Renderable m_box;
+
+
+			Renderable m_box1;
+			Renderable m_box2;
+			Renderable m_box3;
+			Renderable m_box4;
+
 
 			Microsoft::WRL::ComPtr<ID3D11Buffer> m_d3dPerFrameCB;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> m_d3dRarelyChangedCB;
