@@ -67,7 +67,7 @@ void TextureDemoApp::InitMatrices()
 
 	// projection matrix
 	{
-		XMMATRIX P = XMMatrixPerspectiveFovLH(math::ToRadians(45.f), AspectRatio(), 1.f, 1000.f);
+		XMMATRIX P = XMMatrixPerspectiveFovLH(math::ToRadians(45.f), AspectRatio(), 1.f, 50.f);
 		XMStoreFloat4x4(&m_projectionMatrix, P);
 	}
 }
@@ -134,7 +134,7 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 
 	//TORUS
 	{
-		m_torus.mesh = mesh::GenerateTorus(4, 0.2f, 500);
+		m_torus.mesh = mesh::GenerateTorus(4, 0.2f,25);
 		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\wood\wood_color.png)").c_str(), NULL, &m_torus.diffuse_texture_view, NULL);
 		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\wood\wood_norm.png)").c_str(), NULL, &m_torus.normal_texture_view, NULL);
 		CreateWICTextureFromFile(m_d3dDevice.Get(), m_d3dContext.Get(), GetRootDir().append(LR"(\3d-objects\wood\wood_gloss.png)").c_str(), NULL, &m_torus.gloss_texture_view, NULL);

@@ -166,51 +166,57 @@ xtest::mesh::MeshData xtest::mesh::GenerateTorus(float max_radius, float min_rad
 	assert(max_radius > min_radius);
 	assert(min_radius > 0.0f);
 
-	const float phiStep		= 2.0f * XM_PI /  sliceCount;
-	const float thetaStep	= 2.0f * XM_PI /  stackCount;
+	const float phiStep		= XM_2PI /  sliceCount;
+	const float thetaStep	= XM_2PI /  stackCount;
 
 	float torus_radius = (max_radius - min_radius) / 2.0f;
 	const float d = (min_radius + torus_radius);
 
 	MeshData mesh;
 	
-	float phi_phase= XM_PI;
-	float theta_phase = XM_PI;
+	float phi_phase= 0;
+	float theta_phase = 0;
 
 	for (uint32 slice = 0; slice < sliceCount; ++slice)
 	{
-			float phi = slice * phiStep + phi_phase;
+			float theta = slice * phiStep + theta_phase;
 
 
 			for (uint32 stack = 0; stack < stackCount; ++stack) {
-				float theta = stack * thetaStep+theta_phase;
+				float phy = stack * thetaStep + phi_phase;
 
 				MeshData::Vertex v1;
-				v1.position.x = (d + torus_radius * cosf(theta))*cosf(phi);
-				v1.position.z = (d + torus_radius * cosf(theta))*sinf(phi);
-				v1.position.y =      torus_radius * sinf(theta);
+				v1.position.x = (d + torus_radius * cosf(phy))*cosf(theta);
+				v1.position.z = (d + torus_radius * cosf(phy))*sinf(theta);
+				v1.position.y =      torus_radius * sinf(phy);
 				
 				// Partial derivative of P with respect to theta
-				v1.tangentU.x = torus_radius * (-sinf(theta)*cosf(phi));
-				v1.tangentU.z = torus_radius * (-sinf(theta)*sinf(phi));
-				v1.tangentU.y = torus_radius *   cos(theta);
-			
-				v1.normal.x = cosf(phi)*cosf(theta);
-				v1.normal.z = sinf(phi)*cosf(theta);
-				v1.normal.y = sinf(theta);
+				//v1.tangentU.x = torus_radius * (-sinf(theta)*cosf(phi));
+				//v1.tangentU.z = torus_radius * (-sinf(theta)*sinf(phi));
+				//v1.tangentU.y = torus_radius *   cosf(theta);
 
-				XMVECTOR tangentU = XMLoadFloat3(&v1.tangentU);
-				XMStoreFloat3(&v1.tangentU, XMVector3Normalize(tangentU));
+				//v1.tangentU.x = (d + torus_radius * cosf(phy)) * -sinf(theta);
+				//v1.tangentU.z = 0.0f;
+				//v1.tangentU.y = (d + torus_radius * cosf(phy)) * cosf(theta);
 
-				///XMVECTOR position = XMLoadFloat3(&v1.position);
-				XMVECTOR normal = XMLoadFloat3(&v1.normal);
-				XMStoreFloat3(&v1.normal, XMVector3Normalize(normal));
+				v1.tangentU.x = torus_radius* (-sinf(phy)*cosf(theta));
+				v1.tangentU.z = torus_radius* (-sinf(phy)*sinf(theta));
+				v1.tangentU.y = torus_radius* (cosf(phy));
 
-				v1.uv.x = theta / XM_2PI;
-				v1.uv.y = phi / XM_2PI;
+				v1.normal.x = cosf(theta)*cosf(phy);
+				v1.normal.z = sinf(theta)*cosf(phy);
+				v1.normal.y = sinf(phy);
+
+				//XMVECTOR tangentU = XMVector3Normalize(XMLoadFloat3(&v1.tangentU));
+				XMVECTOR tangentU = (XMLoadFloat3(&v1.tangentU));
+				XMStoreFloat3(&v1.tangentU, tangentU);
+
+				v1.uv.x = (stack * thetaStep / XM_2PI);
+				v1.uv.y = (slice * phiStep / XM_2PI);
 
 				mesh.vertices.push_back(v1);
 			}
+			
 	}
 
 	// stacks indices
