@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "mesh_generator.h"
 #include <math/math_utils.h>
 
@@ -155,6 +155,117 @@ xtest::mesh::MeshData xtest::mesh::GenerateSphere(float radius, uint32 sliceCoun
 	return mesh;
 }
 
+xtest::mesh::MeshData xtest::mesh::GenerateTorusKnot(float r, float R, float c, uint32 detailsCount, uint32 q, uint32 p)
+{
+	uint32 sliceCount = detailsCount;
+	uint32 stackCount = detailsCount;
+
+	assert(sliceCount > 3);
+	assert(stackCount > 0.0f);
+	assert(r > 0);
+	assert(R > 0);
+	assert(c > 0);
+	assert(R > r);
+
+	const float phiStep = XM_2PI / sliceCount;
+	const float thetaStep = XM_2PI / stackCount;
+
+	MeshData mesh;
+
+	float phi_phase = 0;
+	float theta_phase = 0;
+
+	float t = XM_PI;
+
+	for (uint32 slice = 0; slice < sliceCount; ++slice)
+	{
+		float theta = slice * phiStep + theta_phase;
+
+
+		for (uint32 stack = 0; stack < stackCount; ++stack) {
+			float phy = stack * thetaStep + phi_phase;
+
+			MeshData::Vertex v1;
+
+			XMFLOAT3 X;
+			XMFLOAT3 N;
+			XMFLOAT3 T;
+			XMFLOAT3 B;
+
+			X.x = (R + r * cosf( q * theta)) * cosf( p * theta  );
+			X.y = (R + r * cosf( q * theta)) * sinf( p * theta );
+			X.z =	   r * sinf( q * theta);
+
+			N.x = cosf( p * theta) * cosf( q * theta );
+			N.y = sinf( p * theta) * cosf( q * theta );
+			N.z =					 sinf( q * theta);
+
+
+			T.x = p * (R + r * cosf(q*theta))*-sinf(p * theta) + q * (r * (-sinf ( q * theta ) * cosf ( p * theta )));
+			T.y = p * (R + r * cosf(q*theta))* cosf(p * theta) + q * (r * (-sinf ( q * theta ) * sinf ( p * theta )));
+			T.z = p * (R + r * cosf(q*theta)) * 0			   + q * (r * ( cosf ( q * theta )));
+		
+			XMVECTOR Xv = XMLoadFloat3(&X);
+			XMVECTOR Tv = XMVector3Normalize(XMLoadFloat3(&T));
+			XMVECTOR Nv = XMLoadFloat3(&N);
+			XMVECTOR Bv;
+			XMVECTOR Xk;
+
+			Bv = XMVector3Cross( Tv , Nv );
+			Xk = XMVectorAdd(Xv, XMVectorAdd(c * cosf(phy) * Nv , c * sinf(phy) * Bv));
+			Nv = XMVectorAdd( cosf(phy) * Nv , sinf(phy) * Bv);
+
+			XMStoreFloat3(&v1.position, Xk);
+			XMStoreFloat3(&v1.tangentU, Tv);
+			XMStoreFloat3(&v1.normal, Nv);
+
+			v1.uv.x = (stack * thetaStep / XM_2PI);
+			v1.uv.y = (slice * phiStep / XM_2PI);
+
+			mesh.vertices.push_back(v1);
+		}
+
+	}
+
+	// stacks indices
+	uint32  offset;
+	uint32  i0;
+	uint32  i1;
+	uint32  i2;
+	uint32  i3;
+
+	uint32 MAX_INDEX = (stackCount - 1) + (sliceCount - 1)*sliceCount;
+
+	for (uint32 slice = 0; slice < sliceCount; ++slice)
+	{
+		for (uint32 i = 0; i < stackCount; ++i)
+		{
+			offset = (i + slice * sliceCount);
+
+			i0 = offset;
+			i1 = offset + 1;
+			i2 = offset + stackCount;
+			i3 = offset + stackCount + 1;
+
+			i1 > MAX_INDEX ? i1 -= stackCount * stackCount : false;
+			i2 > MAX_INDEX ? i2 -= stackCount * stackCount : false;
+			i3 > MAX_INDEX ? i3 -= stackCount * stackCount : false;
+
+
+			mesh.indices.push_back(i0);
+			mesh.indices.push_back(i1);
+			mesh.indices.push_back(i2);
+
+			mesh.indices.push_back(i2);
+			mesh.indices.push_back(i1);
+			mesh.indices.push_back(i3);
+		}
+	}
+
+	return mesh;
+
+}
+
 xtest::mesh::MeshData xtest::mesh::GenerateTorus(float max_radius, float min_radius, uint32 detailsCount)
 {
 
@@ -180,7 +291,6 @@ xtest::mesh::MeshData xtest::mesh::GenerateTorus(float max_radius, float min_rad
 	for (uint32 slice = 0; slice < sliceCount; ++slice)
 	{
 			float theta = slice * phiStep + theta_phase;
-
 
 			for (uint32 stack = 0; stack < stackCount; ++stack) {
 				float phy = stack * thetaStep + phi_phase;

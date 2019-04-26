@@ -172,6 +172,8 @@ namespace xtest {
 			Renderable m_plane;
 			GPFRenderable m_crate;
 			Renderable m_torus;
+			Renderable m_torus_knot;
+			Renderable m_torus_knot2;
 
 
 			Renderable m_box1;

@@ -187,6 +187,111 @@ void xtest::demo::TextureDemoApp::InitRenderable()
 		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&indexBufferDesc, &indexInitdata, &m_torus.d3dIndexBuffer));
 	}
 
+	//TORUS KNOT
+	{
+		m_torus_knot.mesh = mesh::GenerateTorusKnot(2.0f, 10, 0.05, 1000, 20, 1);
+		// W
+		XMStoreFloat4x4(&m_torus_knot.W, XMMatrixMultiply(XMMatrixRotationRollPitchYaw(55.f, 0, 0.0f), XMMatrixMultiply(XMMatrixScaling(1.0f, 1.0f, 1.0f), XMMatrixTranslation(0.f, 8.f, 0.f))));
+
+		// material
+		m_torus_knot.material.ambient = { 0.15f, 0.15f, 0.15f, 1.f };
+		m_torus_knot.material.diffuse = { 0.77f, 0.77f, 0.77f, 1.f };
+		m_torus_knot.material.specular = { 0.8f, 0.8f, 0.8f, 190.0f };
+		m_torus_knot.material.options = { 0 ,0 ,0 ,0 };
+
+		// perObjectCB
+		D3D11_BUFFER_DESC perObjectCBDesc;
+		perObjectCBDesc.Usage = D3D11_USAGE_DYNAMIC;
+		perObjectCBDesc.ByteWidth = sizeof(PerObjectCB);
+		perObjectCBDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		perObjectCBDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		perObjectCBDesc.MiscFlags = 0;
+		perObjectCBDesc.StructureByteStride = 0;
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&perObjectCBDesc, nullptr, &m_torus_knot.d3dPerObjectCB));
+
+
+		// vertex buffer
+		D3D11_BUFFER_DESC vertexBufferDesc;
+		vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		vertexBufferDesc.ByteWidth = UINT(sizeof(mesh::MeshData::Vertex) * m_torus_knot.mesh.vertices.size());
+		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBufferDesc.CPUAccessFlags = 0;
+		vertexBufferDesc.MiscFlags = 0;
+		vertexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA vertexInitData;
+		vertexInitData.pSysMem = &m_torus_knot.mesh.vertices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&vertexBufferDesc, &vertexInitData, &m_torus_knot.d3dVertexBuffer));
+
+
+		// index buffer
+		D3D11_BUFFER_DESC indexBufferDesc;
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.ByteWidth = UINT(sizeof(uint32) * m_torus_knot.mesh.indices.size());
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA indexInitdata;
+		indexInitdata.pSysMem = &m_torus_knot.mesh.indices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&indexBufferDesc, &indexInitdata, &m_torus_knot.d3dIndexBuffer));
+	}
+
+	//TORUS KNOT 2
+	{
+		m_torus_knot2.mesh = mesh::GenerateTorusKnot(1.0f, 4.0f, 0.5f, 500, 11, 3);
+		
+		// W
+		XMStoreFloat4x4(&m_torus_knot2.W, XMMatrixMultiply(XMMatrixRotationRollPitchYaw(55.f, 0, 0.0f), XMMatrixMultiply(XMMatrixScaling(1.0f, 1.0f, 1.0f), XMMatrixTranslation(0.f, 8.f, 0.f))));
+
+		// material
+		m_torus_knot2.material.ambient = { 0.15f, 0.15f, 0.15f, 1.f };
+		m_torus_knot2.material.diffuse = { 0.77f, 0.77f, 0.77f, 1.f };
+		m_torus_knot2.material.specular = { 0.8f, 0.8f, 0.8f, 190.0f };
+		m_torus_knot2.material.options = { 0 , 0 , 0, 0 };
+
+		// perObjectCB
+		D3D11_BUFFER_DESC perObjectCBDesc;
+		perObjectCBDesc.Usage = D3D11_USAGE_DYNAMIC;
+		perObjectCBDesc.ByteWidth = sizeof(PerObjectCB);
+		perObjectCBDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		perObjectCBDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		perObjectCBDesc.MiscFlags = 0;
+		perObjectCBDesc.StructureByteStride = 0;
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&perObjectCBDesc, nullptr, &m_torus_knot2.d3dPerObjectCB));
+
+
+		// vertex buffer
+		D3D11_BUFFER_DESC vertexBufferDesc;
+		vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		vertexBufferDesc.ByteWidth = UINT(sizeof(mesh::MeshData::Vertex) * m_torus_knot2.mesh.vertices.size());
+		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBufferDesc.CPUAccessFlags = 0;
+		vertexBufferDesc.MiscFlags = 0;
+		vertexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA vertexInitData;
+		vertexInitData.pSysMem = &m_torus_knot2.mesh.vertices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&vertexBufferDesc, &vertexInitData, &m_torus_knot2.d3dVertexBuffer));
+
+
+		// index buffer
+		D3D11_BUFFER_DESC indexBufferDesc;
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.ByteWidth = UINT(sizeof(uint32) * m_torus_knot2.mesh.indices.size());
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = 0;
+		indexBufferDesc.MiscFlags = 0;
+		indexBufferDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA indexInitdata;
+		indexInitdata.pSysMem = &m_torus_knot2.mesh.indices[0];
+		XTEST_D3D_CHECK(m_d3dDevice->CreateBuffer(&indexBufferDesc, &indexInitdata, &m_torus_knot2.d3dIndexBuffer));
+	}
+
+
+
 	// plane
 	{
 		// geo
@@ -994,6 +1099,51 @@ void TextureDemoApp::UpdateScene(float deltaSeconds)
 	}
 
 
+	// torus knot PerObjectCB
+	{
+		XMMATRIX W = XMLoadFloat4x4(&m_torus_knot.W);
+		XMMATRIX WVP = W * V * P;
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
+		// disable gpu access
+		XTEST_D3D_CHECK(m_d3dContext->Map(m_torus_knot.d3dPerObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
+		PerObjectCB* perObjectCB = (PerObjectCB*)mappedResource.pData;
+
+		//update the data
+		XMStoreFloat4x4(&perObjectCB->W, XMMatrixTranspose(W));
+		XMStoreFloat4x4(&perObjectCB->WVP, XMMatrixTranspose(WVP));
+		XMStoreFloat4x4(&perObjectCB->W_inverseTraspose, XMMatrixInverse(nullptr, W));
+		perObjectCB->material = m_torus_knot.material;
+
+		// enable gpu access
+		m_d3dContext->Unmap(m_torus_knot.d3dPerObjectCB.Get(), 0);
+	}
+
+
+	// torus knot 2 PerObjectCB
+	{
+		XMMATRIX W = XMLoadFloat4x4(&m_torus_knot2.W);
+		XMMATRIX WVP = W * V * P;
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
+		// disable gpu access
+		XTEST_D3D_CHECK(m_d3dContext->Map(m_torus_knot2.d3dPerObjectCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource));
+		PerObjectCB* perObjectCB = (PerObjectCB*)mappedResource.pData;
+
+		//update the data
+		XMStoreFloat4x4(&perObjectCB->W, XMMatrixTranspose(W));
+		XMStoreFloat4x4(&perObjectCB->WVP, XMMatrixTranspose(WVP));
+		XMStoreFloat4x4(&perObjectCB->W_inverseTraspose, XMMatrixInverse(nullptr, W));
+		perObjectCB->material = m_torus_knot2.material;
+
+		// enable gpu access
+		m_d3dContext->Unmap(m_torus_knot2.d3dPerObjectCB.Get(), 0);
+	}
+
 	// crate PerObjectCB
 	{
 		XMMATRIX W = XMLoadFloat4x4(&m_crate.W);
@@ -1105,7 +1255,35 @@ void TextureDemoApp::RenderScene()
 	m_d3dContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 
-	// draw thorus
+	// draw torus knot
+	{
+		// bind the constant data to the vertex shader
+		m_d3dContext->VSSetConstantBuffers(0, 1, m_torus_knot.d3dPerObjectCB.GetAddressOf());
+		m_d3dContext->PSSetConstantBuffers(0, 1, m_torus_knot.d3dPerObjectCB.GetAddressOf());
+
+		// set what to draw
+		UINT stride = sizeof(mesh::MeshData::Vertex);
+		UINT offset = 0;
+		m_d3dContext->IASetVertexBuffers(0, 1, m_torus_knot.d3dVertexBuffer.GetAddressOf(), &stride, &offset);
+		m_d3dContext->IASetIndexBuffer(m_torus_knot.d3dIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		m_d3dContext->DrawIndexed(UINT(m_torus_knot.mesh.indices.size()), 0, 0);
+	}
+
+	// draw torus knot 2
+	{
+		// bind the constant data to the vertex shader
+		m_d3dContext->VSSetConstantBuffers(0, 1, m_torus_knot2.d3dPerObjectCB.GetAddressOf());
+		m_d3dContext->PSSetConstantBuffers(0, 1, m_torus_knot2.d3dPerObjectCB.GetAddressOf());
+
+	
+		// set what to draw
+		UINT stride = sizeof(mesh::MeshData::Vertex);
+		UINT offset = 0;
+		m_d3dContext->IASetVertexBuffers(0, 1, m_torus_knot2.d3dVertexBuffer.GetAddressOf(), &stride, &offset);
+		m_d3dContext->IASetIndexBuffer(m_torus_knot2.d3dIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		m_d3dContext->DrawIndexed(UINT(m_torus_knot2.mesh.indices.size()), 0, 0);
+	}
+	// draw torus
 	{
 		// bind the constant data to the vertex shader
 		m_d3dContext->VSSetConstantBuffers(0, 1, m_torus.d3dPerObjectCB.GetAddressOf());
