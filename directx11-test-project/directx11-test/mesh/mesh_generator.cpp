@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "mesh_generator.h"
 #include <math/math_utils.h>
 
@@ -32,7 +32,7 @@ xtest::mesh::MeshData xtest::mesh::GeneratePlane(float xLength, float zLength, u
 
 			mesh.vertices[zIter*xDivisions + xIter].position = { x, 0.0f, z };
 			mesh.vertices[zIter*xDivisions + xIter].normal = { 0.0f, 1.0f, 0.0f };
-			mesh.vertices[zIter*xDivisions + xIter].tangentU = { 1.0f, 0.0f, 0.0f };
+			mesh.vertices[zIter*xDivisions + xIter].tangentU = { 1.0f, 0.0f, 0.0f, 1.f };
 
 			mesh.vertices[zIter*xDivisions + xIter].uv.x = xIter * du;
 			mesh.vertices[zIter*xDivisions + xIter].uv.y = zIter * dv;
@@ -64,11 +64,13 @@ xtest::mesh::MeshData xtest::mesh::GeneratePlane(float xLength, float zLength, u
 	return mesh;
 }
 
+
+
 xtest::mesh::MeshData xtest::mesh::GenerateSphere(float radius, uint32 sliceCount, uint32 stackCount)
 {
 	// poles vertices
-	MeshData::Vertex topVertex = { {0.0f, +radius, 0.0f}, {0.0f, +1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f} };
-	MeshData::Vertex bottomVertex = { {0.0f, -radius, 0.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f} };
+	MeshData::Vertex topVertex = { {0.0f, +radius, 0.0f}, {0.0f, +1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 0.0f} };
+	MeshData::Vertex bottomVertex = { {0.0f, -radius, 0.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 1.0f} };
 
 	MeshData mesh;
 	mesh.vertices.push_back(topVertex);
@@ -97,8 +99,9 @@ xtest::mesh::MeshData xtest::mesh::GenerateSphere(float radius, uint32 sliceCoun
 			vertex.tangentU.y = 0.0f;
 			vertex.tangentU.z = +radius * sinf(phi)*cosf(theta);
 
-			XMVECTOR tangentU = XMLoadFloat3(&vertex.tangentU);
-			XMStoreFloat3(&vertex.tangentU, XMVector3Normalize(tangentU));
+			XMVECTOR tangentU = XMLoadFloat4(&vertex.tangentU);
+			XMStoreFloat4(&vertex.tangentU, XMVector3Normalize(tangentU));
+			vertex.tangentU.w = 1.f;
 
 			XMVECTOR position = XMLoadFloat3(&vertex.position);
 			XMStoreFloat3(&vertex.normal, XMVector3Normalize(position));
@@ -155,218 +158,6 @@ xtest::mesh::MeshData xtest::mesh::GenerateSphere(float radius, uint32 sliceCoun
 	return mesh;
 }
 
-xtest::mesh::MeshData xtest::mesh::GenerateTorusKnot(float r, float R, float c, uint32 detailsCount, uint32 q, uint32 p)
-{
-	uint32 sliceCount = detailsCount;
-	uint32 stackCount = detailsCount;
-
-	assert(sliceCount > 3);
-	assert(stackCount > 0.0f);
-	assert(r > 0);
-	assert(R > 0);
-	assert(c > 0);
-	assert(R > r);
-
-	const float phiStep = XM_2PI / sliceCount;
-	const float thetaStep = XM_2PI / stackCount;
-
-	MeshData mesh;
-
-	float phi_phase = 0;
-	float theta_phase = 0;
-
-	float t = XM_PI;
-
-	for (uint32 slice = 0; slice < sliceCount; ++slice)
-	{
-		float theta = slice * phiStep + theta_phase;
-
-
-		for (uint32 stack = 0; stack < stackCount; ++stack) {
-			float phy = stack * thetaStep + phi_phase;
-
-			MeshData::Vertex v1;
-
-			XMFLOAT3 X;
-			XMFLOAT3 N;
-			XMFLOAT3 T;
-			XMFLOAT3 B;
-
-			X.x = (R + r * cosf( q * theta)) * cosf( p * theta  );
-			X.y = (R + r * cosf( q * theta)) * sinf( p * theta );
-			X.z =	   r * sinf( q * theta);
-
-			N.x = cosf( p * theta) * cosf( q * theta );
-			N.y = sinf( p * theta) * cosf( q * theta );
-			N.z =					 sinf( q * theta);
-
-
-			T.x = p * (R + r * cosf(q*theta))*-sinf(p * theta) + q * (r * (-sinf ( q * theta ) * cosf ( p * theta )));
-			T.y = p * (R + r * cosf(q*theta))* cosf(p * theta) + q * (r * (-sinf ( q * theta ) * sinf ( p * theta )));
-			T.z = p * (R + r * cosf(q*theta)) * 0			   + q * (r * ( cosf ( q * theta )));
-		
-			XMVECTOR Xv = XMLoadFloat3(&X);
-			XMVECTOR Tv = XMVector3Normalize(XMLoadFloat3(&T));
-			XMVECTOR Nv = XMLoadFloat3(&N);
-			XMVECTOR Bv;
-			XMVECTOR Xk;
-
-			Bv = XMVector3Cross( Tv , Nv );
-			Xk = XMVectorAdd(Xv, XMVectorAdd(c * cosf(phy) * Nv , c * sinf(phy) * Bv));
-			Nv = XMVectorAdd( cosf(phy) * Nv , sinf(phy) * Bv);
-
-			XMStoreFloat3(&v1.position, Xk);
-			XMStoreFloat3(&v1.tangentU, Tv);
-			XMStoreFloat3(&v1.normal, Nv);
-
-			v1.uv.x = (stack * thetaStep / XM_2PI);
-			v1.uv.y = (slice * phiStep / XM_2PI);
-
-			mesh.vertices.push_back(v1);
-		}
-
-	}
-
-	// stacks indices
-	uint32  offset;
-	uint32  i0;
-	uint32  i1;
-	uint32  i2;
-	uint32  i3;
-
-	uint32 MAX_INDEX = (stackCount - 1) + (sliceCount - 1)*sliceCount;
-
-	for (uint32 slice = 0; slice < sliceCount; ++slice)
-	{
-		for (uint32 i = 0; i < stackCount; ++i)
-		{
-			offset = (i + slice * sliceCount);
-
-			i0 = offset;
-			i1 = offset + 1;
-			i2 = offset + stackCount;
-			i3 = offset + stackCount + 1;
-
-			i1 > MAX_INDEX ? i1 -= stackCount * stackCount : false;
-			i2 > MAX_INDEX ? i2 -= stackCount * stackCount : false;
-			i3 > MAX_INDEX ? i3 -= stackCount * stackCount : false;
-
-
-			mesh.indices.push_back(i0);
-			mesh.indices.push_back(i1);
-			mesh.indices.push_back(i2);
-
-			mesh.indices.push_back(i2);
-			mesh.indices.push_back(i1);
-			mesh.indices.push_back(i3);
-		}
-	}
-
-	return mesh;
-
-}
-
-xtest::mesh::MeshData xtest::mesh::GenerateTorus(float max_radius, float min_radius, uint32 detailsCount)
-{
-
-	uint32 sliceCount = detailsCount;
-	uint32 stackCount = detailsCount;
-
-	assert(sliceCount > 3);
-	assert(stackCount > 0.0f);
-	assert(max_radius > min_radius);
-	assert(min_radius > 0.0f);
-
-	const float phiStep		= XM_2PI /  sliceCount;
-	const float thetaStep	= XM_2PI /  stackCount;
-
-	float torus_radius = (max_radius - min_radius) / 2.0f;
-	const float d = (min_radius + torus_radius);
-
-	MeshData mesh;
-	
-	float phi_phase= 0;
-	float theta_phase = 0;
-
-	for (uint32 slice = 0; slice < sliceCount; ++slice)
-	{
-			float theta = slice * phiStep + theta_phase;
-
-			for (uint32 stack = 0; stack < stackCount; ++stack) {
-				float phy = stack * thetaStep + phi_phase;
-
-				MeshData::Vertex v1;
-				v1.position.x = (d + torus_radius * cosf(phy))*cosf(theta);
-				v1.position.z = (d + torus_radius * cosf(phy))*sinf(theta);
-				v1.position.y =      torus_radius * sinf(phy);
-				
-				// Partial derivative of P with respect to theta
-				//v1.tangentU.x = torus_radius * (-sinf(theta)*cosf(phi));
-				//v1.tangentU.z = torus_radius * (-sinf(theta)*sinf(phi));
-				//v1.tangentU.y = torus_radius *   cosf(theta);
-
-				//v1.tangentU.x = (d + torus_radius * cosf(phy)) * -sinf(theta);
-				//v1.tangentU.z = 0.0f;
-				//v1.tangentU.y = (d + torus_radius * cosf(phy)) * cosf(theta);
-
-				v1.tangentU.x = torus_radius* (-sinf(phy)*cosf(theta));
-				v1.tangentU.z = torus_radius* (-sinf(phy)*sinf(theta));
-				v1.tangentU.y = torus_radius* (cosf(phy));
-
-				v1.normal.x = cosf(theta)*cosf(phy);
-				v1.normal.z = sinf(theta)*cosf(phy);
-				v1.normal.y = sinf(phy);
-
-				//XMVECTOR tangentU = XMVector3Normalize(XMLoadFloat3(&v1.tangentU));
-				XMVECTOR tangentU = (XMLoadFloat3(&v1.tangentU));
-				XMStoreFloat3(&v1.tangentU, tangentU);
-
-				v1.uv.x = (stack * thetaStep / XM_2PI);
-				v1.uv.y = (slice * phiStep / XM_2PI);
-
-				mesh.vertices.push_back(v1);
-			}
-			
-	}
-
-	// stacks indices
-	uint32  offset;
-	uint32  i0;
-	uint32  i1;
-	uint32  i2;
-	uint32  i3;
-	
-	uint32 MAX_INDEX = (stackCount - 1) + (sliceCount - 1)*sliceCount;
-
-	for (uint32 slice = 0; slice < sliceCount; ++slice)
-	{
-		for (uint32 i = 0; i < stackCount; ++i)
-		{
-			offset = (i + slice * sliceCount);
-
-			i0 = offset;
-			i1 = offset + 1;
-			i2 = offset + stackCount;
-			i3 = offset + stackCount + 1;
-
-			i1 > MAX_INDEX ? i1 -= stackCount * stackCount : false;
-			i2 > MAX_INDEX ? i2 -= stackCount * stackCount : false;
-			i3 > MAX_INDEX ? i3 -= stackCount * stackCount : false;
-			
-
-			mesh.indices.push_back(i0);
-			mesh.indices.push_back(i1);
-			mesh.indices.push_back(i2);
-			
-			mesh.indices.push_back(i2);
-			mesh.indices.push_back(i1);
-			mesh.indices.push_back(i3);
-		}
-	}
-
-	return mesh;
-}
-
 
 xtest::mesh::MeshData xtest::mesh::GenerateBox(float xLength, float yLength, float zLength)
 {
@@ -378,40 +169,40 @@ xtest::mesh::MeshData xtest::mesh::GenerateBox(float xLength, float yLength, flo
 	float zHalfLength = 0.5f*zLength;
 
 	// front
-	mesh.vertices[0] = { {-xHalfLength, -yHalfLength, -zHalfLength}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f} };
-	mesh.vertices[1] = { {-xHalfLength, +yHalfLength, -zHalfLength}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f} };
-	mesh.vertices[2] = { {+xHalfLength, +yHalfLength, -zHalfLength}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f} };
-	mesh.vertices[3] = { {+xHalfLength, -yHalfLength, -zHalfLength}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f} };
-					   																							 
-	// back		   																							 
-	mesh.vertices[4] = { {-xHalfLength, -yHalfLength, +zHalfLength}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f} };
-	mesh.vertices[5] = { {+xHalfLength, -yHalfLength, +zHalfLength}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f} };
-	mesh.vertices[6] = { {+xHalfLength, +yHalfLength, +zHalfLength}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f} };
-	mesh.vertices[7] = { {-xHalfLength, +yHalfLength, +zHalfLength}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f} };
+	mesh.vertices[0] = { {-xHalfLength, -yHalfLength, -zHalfLength}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 1.0f} };
+	mesh.vertices[1] = { {-xHalfLength, +yHalfLength, -zHalfLength}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 0.0f} };
+	mesh.vertices[2] = { {+xHalfLength, +yHalfLength, -zHalfLength}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f, 1.f }, {1.0f, 0.0f} };
+	mesh.vertices[3] = { {+xHalfLength, -yHalfLength, -zHalfLength}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f, 1.f }, {1.0f, 1.0f} };
 
-	// top			
-	mesh.vertices[8]  = {{-xHalfLength, +yHalfLength, -zHalfLength}, {0.0f, 1.0f, 0.0f }, {1.0f, 0.0f, 0.0f }, {0.0f, 1.0f}};
-	mesh.vertices[9]  = {{-xHalfLength, +yHalfLength, +zHalfLength}, {0.0f, 1.0f, 0.0f }, {1.0f, 0.0f, 0.0f }, {0.0f, 0.0f}};
-	mesh.vertices[10] = {{+xHalfLength, +yHalfLength, +zHalfLength}, {0.0f, 1.0f, 0.0f }, {1.0f, 0.0f, 0.0f }, {1.0f, 0.0f}};
-	mesh.vertices[11] = {{+xHalfLength, +yHalfLength, -zHalfLength}, {0.0f, 1.0f, 0.0f }, {1.0f, 0.0f, 0.0f }, {1.0f, 1.0f}};
+	// back		   																							
+	mesh.vertices[4] = { {-xHalfLength, -yHalfLength, +zHalfLength}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f, 1.f }, {1.0f, 1.0f} };
+	mesh.vertices[5] = { {+xHalfLength, -yHalfLength, +zHalfLength}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 1.0f} };
+	mesh.vertices[6] = { {+xHalfLength, +yHalfLength, +zHalfLength}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 0.0f} };
+	mesh.vertices[7] = { {-xHalfLength, +yHalfLength, +zHalfLength}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f, 1.f }, {1.0f, 0.0f} };
+
+	// top
+	mesh.vertices[8]  = {{-xHalfLength, +yHalfLength, -zHalfLength}, {0.0f, 1.0f, 0.0f }, {1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 1.0f}};
+	mesh.vertices[9]  = {{-xHalfLength, +yHalfLength, +zHalfLength}, {0.0f, 1.0f, 0.0f }, {1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 0.0f}};
+	mesh.vertices[10] = {{+xHalfLength, +yHalfLength, +zHalfLength}, {0.0f, 1.0f, 0.0f }, {1.0f, 0.0f, 0.0f, 1.f }, {1.0f, 0.0f}};
+	mesh.vertices[11] = {{+xHalfLength, +yHalfLength, -zHalfLength}, {0.0f, 1.0f, 0.0f }, {1.0f, 0.0f, 0.0f, 1.f }, {1.0f, 1.0f}};
 						
 	// bottom			
-	mesh.vertices[12] = {{-xHalfLength, -yHalfLength, -zHalfLength}, {0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}};
-	mesh.vertices[13] = {{+xHalfLength, -yHalfLength, -zHalfLength}, {0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}};
-	mesh.vertices[14] = {{+xHalfLength, -yHalfLength, +zHalfLength}, {0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}};
-	mesh.vertices[15] = {{-xHalfLength, -yHalfLength, +zHalfLength}, {0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}};
-						
-	// left			
-	mesh.vertices[16] = {{-xHalfLength, -yHalfLength, +zHalfLength}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}};
-	mesh.vertices[17] = {{-xHalfLength, +yHalfLength, +zHalfLength}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}};
-	mesh.vertices[18] = {{-xHalfLength, +yHalfLength, -zHalfLength}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}};
-	mesh.vertices[19] = {{-xHalfLength, -yHalfLength, -zHalfLength}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}};
-						
-	// right			
-	mesh.vertices[20] = {{+xHalfLength, -yHalfLength, -zHalfLength}, {1.0f, 0.0f, 0.0f }, {0.0f, 0.0f, 1.0f }, {0.0f, 1.0f}};
-	mesh.vertices[21] = {{+xHalfLength, +yHalfLength, -zHalfLength}, {1.0f, 0.0f, 0.0f }, {0.0f, 0.0f, 1.0f }, {0.0f, 0.0f}};
-	mesh.vertices[22] = {{+xHalfLength, +yHalfLength, +zHalfLength}, {1.0f, 0.0f, 0.0f }, {0.0f, 0.0f, 1.0f }, {1.0f, 0.0f}};
-	mesh.vertices[23] = {{+xHalfLength, -yHalfLength, +zHalfLength}, {1.0f, 0.0f, 0.0f }, {0.0f, 0.0f, 1.0f }, {1.0f, 1.0f}};
+	mesh.vertices[12] = {{-xHalfLength, -yHalfLength, -zHalfLength}, {0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.f }, {1.0f, 1.0f}};
+	mesh.vertices[13] = {{+xHalfLength, -yHalfLength, -zHalfLength}, {0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 1.0f}};
+	mesh.vertices[14] = {{+xHalfLength, -yHalfLength, +zHalfLength}, {0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.f }, {0.0f, 0.0f}};
+	mesh.vertices[15] = {{-xHalfLength, -yHalfLength, +zHalfLength}, {0.0f, -1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.f }, {1.0f, 0.0f}};
+
+	// left
+	mesh.vertices[16] = {{-xHalfLength, -yHalfLength, +zHalfLength}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f, 1.f }, {0.0f, 1.0f}};
+	mesh.vertices[17] = {{-xHalfLength, +yHalfLength, +zHalfLength}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f, 1.f }, {0.0f, 0.0f}};
+	mesh.vertices[18] = {{-xHalfLength, +yHalfLength, -zHalfLength}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f, 1.f }, {1.0f, 0.0f}};
+	mesh.vertices[19] = {{-xHalfLength, -yHalfLength, -zHalfLength}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f, 1.f }, {1.0f, 1.0f}};
+
+	// right
+	mesh.vertices[20] = { {+xHalfLength, -yHalfLength, -zHalfLength}, {1.0f, 0.0f, 0.0f }, {0.0f, 0.0f, 1.0f, 1.f }, {0.0f, 1.0f} };
+	mesh.vertices[21] = { {+xHalfLength, +yHalfLength, -zHalfLength}, {1.0f, 0.0f, 0.0f }, {0.0f, 0.0f, 1.0f, 1.f }, {0.0f, 0.0f} };
+	mesh.vertices[22] = { {+xHalfLength, +yHalfLength, +zHalfLength}, {1.0f, 0.0f, 0.0f }, {0.0f, 0.0f, 1.0f, 1.f }, {1.0f, 0.0f} };
+	mesh.vertices[23] = { {+xHalfLength, -yHalfLength, +zHalfLength}, {1.0f, 0.0f, 0.0f }, {0.0f, 0.0f, 1.0f, 1.f }, {1.0f, 1.0f} };
 
 
 
