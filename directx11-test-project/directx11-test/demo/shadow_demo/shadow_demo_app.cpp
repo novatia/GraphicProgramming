@@ -44,9 +44,10 @@ void ShadowDemoApp::Init()
 	m_camera.SetPerspectiveProjection(math::ToRadians(45.f), AspectRatio(), 1.f, 1000.f);
 
 	InitRenderTechnique();
+	InitShadows();
 	InitRenderables();
 	InitLights();
-	InitShadows();
+
 
 	service::Locator::GetMouse()->AddListener(this);
 	service::Locator::GetKeyboard()->AddListener(this, { input::Key::F, input::Key::F1, input::Key::F2, input::Key::F3, input::Key::space_bar });
@@ -93,6 +94,7 @@ void ShadowDemoApp::InitRenderables()
 		plane.SetTransform(XMMatrixIdentity());
 		plane.SetTexcoordTransform(XMMatrixScaling(3.f, 3.f, 3.f));
 		plane.Init();
+		
 		m_objects.push_back(plane);
 	}
 
