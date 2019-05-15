@@ -44,7 +44,7 @@ void ShadowDemoApp::Init()
 	m_camera.SetPerspectiveProjection(math::ToRadians(45.f), AspectRatio(), 1.f, 1000.f);
 
 	InitRenderTechnique();
-	InitShadows();
+
 	InitRenderables();
 	InitLights();
 
