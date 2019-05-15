@@ -1,7 +1,5 @@
-
 #define POINT_LIGHT_COUNT 4
 #define DIRECTIONAL_LIGHT_COUNT 2
-
 
 struct Material
 {
@@ -47,9 +45,8 @@ struct VertexOut
 	float3 normalW : NORMAL;
 	float3 tangentW : TANGENT;
 	float2 uv : TEXCOORD;
+	float4 shadowPosH : SHADOWPOS;
 };
-
-
 
 cbuffer PerObjectCB : register(b0)
 {
@@ -77,18 +74,16 @@ cbuffer RarelyChangedCB : register(b2)
 Texture2D diffuseTexture : register(t0);
 Texture2D normalTexture : register(t1);
 Texture2D glossTexture : register(t2);
+Texture2D shadowMap: register(t10);
+
 SamplerState textureSampler : register(s0);
-
-
-
-
+SamplerState shadowSampler : register(s10);
 
 
 float4 CalculateAmbient(float4 matAmbient, float4 lightAmbient)
 {
 	return matAmbient * lightAmbient;
 }
-
 
 void CalculateDiffuseAndSpecular(
 	float3 toLightW,
@@ -135,7 +130,6 @@ void ApplyAttenuation(
 	specular *= attenuationFactor * falloff;
 }
 
-
 void CalculateDirAndDistance(float3 pos, float3 target, out float3 dir, out float distance)
 {
 	float3 toTarget = target - pos;
@@ -146,8 +140,6 @@ void CalculateDirAndDistance(float3 pos, float3 target, out float3 dir, out floa
 
 	dir = toTarget;
 }
-
-
 float3 BumpNormalW(float2 uv, float3 normalW, float3 tangentW)
 {
 	float3 normalSample = normalTexture.Sample(textureSampler, uv).rgb;
@@ -160,9 +152,6 @@ float3 BumpNormalW(float2 uv, float3 normalW, float3 tangentW)
 
 	return mul(bumpNormalT, TBN);
 }
-
-
-
 
 void DirectionalLightContribution(Material mat, DirectionalLight light, float3 normalW, float3 toEyeW, float glossSample, out float4 ambient, out float4 diffuse, out float4 specular)
 {
@@ -179,8 +168,6 @@ void DirectionalLightContribution(Material mat, DirectionalLight light, float3 n
 	CalculateDiffuseAndSpecular(toLightW, normalW, toEyeW, mat.diffuse, mat.specular, light.diffuse, light.specular, glossSample, diffuse, specular);
 
 }
-
-
 void PointLightContribution(Material mat, PointLight light, float3 posW, float3 normalW, float3 toEyeW, float glossSample, out float4 ambient, out float4 diffuse, out float4 specular)
 {
 	// default values
@@ -206,8 +193,6 @@ void PointLightContribution(Material mat, PointLight light, float3 posW, float3 
 	CalculateDiffuseAndSpecular(toLightW, normalW, toEyeW, mat.diffuse, mat.specular, light.diffuse, light.specular, glossSample, diffuse, specular);
 	ApplyAttenuation(light.attenuation, distance, falloff, ambient, diffuse, specular);
 }
-
-
 void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 normalW, float3 toEyeW, float glossSample, out float4 ambient, out float4 diffuse, out float4 specular)
 {
 	// default values
@@ -234,74 +219,87 @@ void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 no
 	ApplyAttenuation(light.attenuation, distance, spot, ambient, diffuse, specular);
 }
 
-
-
-
 float4 main(VertexOut pin) : SV_TARGET
 {
 	pin.normalW = normalize(pin.normalW);
 
-// make sure tangentW is still orthogonal to normalW and is unit leght even
-// after the rasterizer stage (interpolation) 
-pin.tangentW = pin.tangentW - (dot(pin.tangentW, pin.normalW)*pin.normalW);
-pin.tangentW = normalize(pin.tangentW);
+	// make sure tangentW is still orthogonal to normalW and is unit leght even
+	// after the rasterizer stage (interpolation) 
+	pin.tangentW = pin.tangentW - (dot(pin.tangentW, pin.normalW)*pin.normalW);
+	pin.tangentW = normalize(pin.tangentW);
 
 
-// bump normal from texture
-float3 bumpNormalW;
+	//SHADOW LIT CALCULATION
+	pin.shadowPosH.xyz /= pin.shadowPosH.w;
+	float depthNDC = pin.shadowPosH.z;
 
-if (useBumpMap)
-{
-	bumpNormalW = BumpNormalW(pin.uv, pin.normalW, pin.tangentW);
-}
-else
-{
-	bumpNormalW = pin.normalW;
-}
+	float shadowDepthNDC = shadowMap.Sample(shadowSampler,pin.shadowPosH.xy).r;
+	float litFactor;
 
+	litFactor = 0.f;
 
-float glossSample = glossTexture.Sample(textureSampler, pin.uv).r;
-float3 toEyeW = normalize(eyePosW - pin.posW);
-
-float4 totalAmbient = float4(0.f, 0.f, 0.f, 0.f);
-float4 totalDiffuse = float4(0.f, 0.f, 0.f, 0.f);
-float4 totalSpecular = float4(0.f, 0.f, 0.f, 0.f);
-float4 ambient;
-float4 diffuse;
-float4 specular;
-
-
-if (useDirLight)
-{
-	[unroll]
-	for (uint i = 0; i < DIRECTIONAL_LIGHT_COUNT; i++)
-	{
-		DirectionalLightContribution(material, dirLights[i], bumpNormalW, toEyeW, glossSample, ambient, diffuse, specular);
-		totalAmbient += ambient;
-		totalDiffuse += diffuse;
-		totalSpecular += specular;
-	}
-}
-
-
-if (usePointLight)
-{
-	[unroll]
-	for (uint i = 0; i < POINT_LIGHT_COUNT; i++)
-	{
-		PointLightContribution(material, pointLights[i], pin.posW, bumpNormalW, toEyeW, glossSample, ambient, diffuse, specular);
-		totalAmbient += ambient;
-		totalDiffuse += diffuse;
-		totalSpecular += specular;
+	[flatten]
+	if (shadowDepthNDC >= depthNDC) {
+		litFactor = 1.f;
 	}
 
-}
+
+	// bump normal from texture
+	float3 bumpNormalW;
+
+	if (useBumpMap)
+	{
+		bumpNormalW = BumpNormalW(pin.uv, pin.normalW, pin.tangentW);
+	}
+	else
+	{
+		bumpNormalW = pin.normalW;
+	}
 
 
-float4 diffuseColor = diffuseTexture.Sample(textureSampler, pin.uv);
-float4 finalColor = diffuseColor * (totalAmbient + totalDiffuse) + totalSpecular;
-finalColor.a = diffuseColor.a * totalDiffuse.a;
+	float glossSample = glossTexture.Sample(textureSampler, pin.uv).r;
+	float3 toEyeW = normalize(eyePosW - pin.posW);
 
-return finalColor;
+	float4 totalAmbient = float4(0.f, 0.f, 0.f, 0.f);
+	float4 totalDiffuse = float4(0.f, 0.f, 0.f, 0.f);
+	float4 totalSpecular = float4(0.f, 0.f, 0.f, 0.f);
+
+	float4 ambient;
+	float4 diffuse;
+	float4 specular;
+
+
+	if (useDirLight)
+	{
+		[unroll]
+		for (uint i = 0; i < DIRECTIONAL_LIGHT_COUNT; i++)
+		{
+			DirectionalLightContribution(material, dirLights[i], bumpNormalW, toEyeW, glossSample, ambient, diffuse, specular);
+			totalAmbient += ambient;
+			totalDiffuse += diffuse * litFactor;
+			totalSpecular += specular * litFactor;
+		}
+	}
+
+
+	if (usePointLight)
+	{
+		[unroll]
+		for (uint i = 0; i < POINT_LIGHT_COUNT; i++)
+		{
+			PointLightContribution(material, pointLights[i], pin.posW, bumpNormalW, toEyeW, glossSample, ambient, diffuse, specular);
+			totalAmbient += ambient;
+			totalDiffuse += diffuse;
+			totalSpecular += specular;
+		}
+
+	}
+
+
+	float4 diffuseColor = diffuseTexture.Sample(textureSampler, pin.uv);
+	float4 finalColor = diffuseColor * (totalAmbient + totalDiffuse) + totalSpecular;
+	finalColor.a = diffuseColor.a * totalDiffuse.a;
+
+	return finalColor;
 
 }

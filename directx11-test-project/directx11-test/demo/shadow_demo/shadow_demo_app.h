@@ -26,8 +26,16 @@ namespace xtest {
 		class ShadowDemoApp : public application::DirectxApp, public input::MouseListener, public input::KeyboardListener
 		{
 		public:
-
-
+			struct BoundingSphere
+			{
+				DirectX::XMFLOAT3 Center = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+				float Radius = 100.0f;
+				
+				const float GetRadius() const {
+					return Radius;
+				}
+			};
+			
 			struct DirectionalLight
 			{
 				DirectX::XMFLOAT4 ambient;
@@ -61,6 +69,7 @@ namespace xtest {
 				DirectX::XMFLOAT4X4 W_inverseTraspose;
 				DirectX::XMFLOAT4X4 WVP;
 				DirectX::XMFLOAT4X4 TexcoordMatrix;
+				DirectX::XMFLOAT4X4 WVPT_shadowMap;
 				Material material;
 			};
 
@@ -95,7 +104,8 @@ namespace xtest {
 			virtual void OnResized() override;
 			virtual void UpdateScene(float deltaSeconds) override;
 			virtual void RenderScene() override;
-
+			virtual void RenderShadow();
+			
 			virtual void OnWheelScroll(input::ScrollStatus scroll) override;
 			virtual void OnMouseMove(const DirectX::XMINT2& movement, const DirectX::XMINT2& currentPos) override;
 			virtual void OnKeyStatusChange(input::Key key, const input::KeyStatus& status) override;
@@ -105,7 +115,7 @@ namespace xtest {
 			void InitRenderTechnique();
 			void InitRenderables();
 			void InitLights();
-			void InitShadows();
+			
 			PerObjectData ToPerObjectData(const render::Renderable& renderable, const std::string& meshName) const;
 
 			DirectionalLight m_dirKeyLight;
@@ -115,11 +125,18 @@ namespace xtest {
 			bool m_isLightingControlsDirty;
 			bool m_stopLights;
 
-			UINT shadow_map_width;
-			UINT shadow_map_height;
+			D3D11_VIEWPORT mViewport;
+
+			BoundingSphere m_bSphere;
+
+			UINT shadow_map_width = 2048;
+			UINT shadow_map_height = 2048;
 
 			camera::SphericalCamera m_camera;
 			std::vector<render::Renderable> m_objects;
+
+
+			render::shading::RenderPass m_shadow_renderPass;
 			render::shading::RenderPass m_renderPass;
 
 		};

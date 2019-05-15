@@ -188,10 +188,6 @@ void ShadowDemoApp::InitLights()
 	m_lightingControls.useBumpMap = true;
 }
 
-void ShadowDemoApp::InitShadows() {
-
-}
-
 void ShadowDemoApp::OnResized()
 {
 	application::DirectxApp::OnResized();
@@ -320,6 +316,40 @@ void ShadowDemoApp::UpdateScene(float deltaSeconds)
 
 }
 
+void ShadowDemoApp::RenderShadow()
+{
+	mViewport.TopLeftX = 0.0f;
+	mViewport.TopLeftY = 0.0f;
+	mViewport.Width = shadow_map_width;
+	mViewport.Height = shadow_map_height;
+	mViewport.MinDepth = 0.0f;
+	mViewport.MaxDepth = 1.0f;
+
+	service::Locator::GetD3DContext()->PSSetShader(nullptr, nullptr, 0);
+	service::Locator::GetD3DContext()->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+
+	m_d3dAnnotation->BeginEvent(L"render-shadow");
+
+	m_renderPass.Bind();
+	m_renderPass.GetState()->ClearDepthOnly();
+	m_renderPass.GetState()->ClearRenderTarget(DirectX::Colors::DarkGray);
+
+	// draw objects
+	for (render::Renderable& renderable : m_objects)
+	{
+		for (const std::string& meshName : renderable.GetMeshNames())
+		{
+			PerObjectData data = ToPerObjectData(renderable, meshName);
+			m_renderPass.GetVertexShader()->GetConstantBuffer(CBufferFrequency::per_object)->UpdateBuffer(data);
+			renderable.Draw(meshName);
+		}
+	}
+
+
+	XTEST_D3D_CHECK(m_swapChain->Present(0, 0));
+
+	m_d3dAnnotation->EndEvent();
+}
 
 void ShadowDemoApp::RenderScene()
 {
@@ -342,7 +372,6 @@ void ShadowDemoApp::RenderScene()
 			m_renderPass.GetPixelShader()->BindTexture(TextureUsage::color, renderable.GetTextureView(TextureUsage::color, meshName));
 			m_renderPass.GetPixelShader()->BindTexture(TextureUsage::normal, renderable.GetTextureView(TextureUsage::normal, meshName));
 			m_renderPass.GetPixelShader()->BindTexture(TextureUsage::glossiness, renderable.GetTextureView(TextureUsage::glossiness, meshName));
-			m_renderPass.GetPixelShader()->BindTexture(TextureUsage::shadow_map, renderable.GetTextureView(TextureUsage::shadow_map, meshName));
 			renderable.Draw(meshName);
 		}
 	}
@@ -362,12 +391,36 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 	XMMATRIX T = XMLoadFloat4x4(&renderable.GetTexcoordTransform(meshName));
 	XMMATRIX V = m_camera.GetViewMatrix();
 	XMMATRIX P = m_camera.GetProjectionMatrix();
-	XMMATRIX WVP = W * V*P;
+	XMMATRIX WVP = W * V * P;
+
+
+	// SHADOW MATRIX
+	XMVECTOR lightDir = XMLoadFloat3(&m_dirKeyLight.dirW);
+	XMVECTOR lightPos = -2.0f * m_bSphere.GetRadius() * lightDir;
+	XMVECTOR targetPos = XMLoadFloat3(&m_bSphere.Center);
+	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+	XMMATRIX VL = XMMatrixLookAtLH(lightPos, targetPos, up);
+
+	XMFLOAT3 bSpherePosLS;
+	XMStoreFloat3(&bSpherePosLS, XMVector3TransformCoord(targetPos, VL));
+
+	XMMATRIX WVPT = XMMatrixOrthographicOffCenterLH(
+		bSpherePosLS.x - m_bSphere.GetRadius(),
+		bSpherePosLS.x + m_bSphere.GetRadius(),
+		bSpherePosLS.y - m_bSphere.GetRadius(),
+		bSpherePosLS.y + m_bSphere.GetRadius(),
+		bSpherePosLS.z - m_bSphere.GetRadius(),
+		bSpherePosLS.z + m_bSphere.GetRadius()
+	);
+
 
 	XMStoreFloat4x4(&data.W, XMMatrixTranspose(W));
 	XMStoreFloat4x4(&data.WVP, XMMatrixTranspose(WVP));
 	XMStoreFloat4x4(&data.W_inverseTraspose, XMMatrixInverse(nullptr, W));
 	XMStoreFloat4x4(&data.TexcoordMatrix, XMMatrixTranspose(T));
+	XMStoreFloat4x4(&data.WVPT_shadowMap, WVPT);
+
 	data.material.ambient = renderable.GetMaterial(meshName).ambient;
 	data.material.diffuse = renderable.GetMaterial(meshName).diffuse;
 	data.material.specular = renderable.GetMaterial(meshName).specular;
