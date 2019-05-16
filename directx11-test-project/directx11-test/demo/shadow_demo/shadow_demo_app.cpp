@@ -42,7 +42,7 @@ void ShadowDemoApp::Init()
 	application::DirectxApp::Init();
 
 	m_camera.SetPerspectiveProjection(math::ToRadians(45.f), AspectRatio(), 1.f, 1000.f);
-
+	InitShadowMap();
 	InitRenderTechnique();
 
 	InitRenderables();
@@ -51,6 +51,66 @@ void ShadowDemoApp::Init()
 
 	service::Locator::GetMouse()->AddListener(this);
 	service::Locator::GetKeyboard()->AddListener(this, { input::Key::F, input::Key::F1, input::Key::F2, input::Key::F3, input::Key::space_bar });
+}
+
+void ShadowDemoApp::InitShadowMap() {
+	file::ResourceLoader* loader = service::Locator::GetResourceLoader();
+
+	D3D11_TEXTURE2D_DESC texDesc;
+	ZeroMemory(&texDesc, sizeof(D3D11_TEXTURE2D_DESC));
+
+	texDesc.Width = m_shadow_map_width;
+	texDesc.Height = m_shadow_map_height;
+	texDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.SampleDesc.Quality = 0;
+	texDesc.Usage = D3D11_USAGE_DEFAULT;
+	texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	texDesc.CPUAccessFlags = 0;
+	texDesc.MiscFlags = 0;
+	texDesc.MipLevels = 1;
+	texDesc.ArraySize = 1;
+
+	XTEST_D3D_CHECK(m_d3dDevice->CreateTexture2D(&texDesc, 0, &texture));
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
+	depthStencilViewDesc.Flags = 0;
+	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	depthStencilViewDesc.Texture2D.MipSlice = 0;
+
+	XTEST_D3D_CHECK(m_d3dDevice->CreateDepthStencilView(texture.Get(), &depthStencilViewDesc, &m_shadow_map_depthBufferView));
+
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC shaderViewDesc;
+	ZeroMemory(&shaderViewDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+
+	shaderViewDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	shaderViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	shaderViewDesc.Texture2D.MipLevels = 1;
+	shaderViewDesc.Texture2D.MostDetailedMip = 0;
+
+	XTEST_D3D_CHECK(m_d3dDevice->CreateShaderResourceView(texture.Get(), &shaderViewDesc, &m_shaderView));
+	
+	m_shadow_map_viewport.TopLeftX = 0.0f;
+	m_shadow_map_viewport.TopLeftY = 0.0f;
+	m_shadow_map_viewport.Width = static_cast<float>(m_shadow_map_width);
+	m_shadow_map_viewport.Height = static_cast<float>(m_shadow_map_height);
+	m_shadow_map_viewport.MinDepth = 0.0f;
+	m_shadow_map_viewport.MaxDepth = 1.0f;
+
+
+	//SHADOW PASS
+	const xtest::file::BinaryFile* vsData = loader->LoadBinaryFile(GetRootDir().append(L"\\shadow_map_VS.cso"));
+
+	std::shared_ptr<VertexShader> shadowVertexShader = std::make_shared<VertexShader>(vsData);
+	shadowVertexShader->SetVertexInput(std::make_shared<ShadowMapVertexInput>());
+	shadowVertexShader->AddConstantBuffer(CBufferFrequency::per_object, std::make_unique<CBuffer<PerObjectData>>());
+
+
+	m_shadow_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_shadow_map_viewport, std::make_shared<SolidCullBackRS>(), nullptr, m_shadow_map_depthBufferView.Get()));
+	m_shadow_renderPass.SetVertexShader(shadowVertexShader);
+	m_shadow_renderPass.Init();
 }
 
 
@@ -67,15 +127,13 @@ void ShadowDemoApp::InitRenderTechnique()
 	pixelShader->AddConstantBuffer(CBufferFrequency::per_frame, std::make_unique<CBuffer<PerFrameData>>());
 	pixelShader->AddConstantBuffer(CBufferFrequency::rarely_changed, std::make_unique<CBuffer<RarelyChangedData>>());
 	pixelShader->AddSampler(SamplerUsage::common_textures, std::make_shared<AnisotropicSampler>());
+	pixelShader->AddSampler(SamplerUsage::shadow_map, std::make_shared<ShadowMapSampler>());
 
-	m_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_viewport, std::make_shared<SolidCullBackRS>(), m_backBufferView.Get(), m_depthBufferView.Get()));
+	m_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_shadow_map_viewport, std::make_shared<SolidCullBackRS>(), m_backBufferView.Get(), m_depthBufferView.Get()));
 	m_renderPass.SetVertexShader(vertexShader);
 	m_renderPass.SetPixelShader(pixelShader);
 	m_renderPass.Init();
-
-
 }
-
 
 void ShadowDemoApp::InitRenderables()
 {
@@ -158,10 +216,7 @@ void ShadowDemoApp::InitRenderables()
 			}
 		}
 	}
-
 }
-
-
 void ShadowDemoApp::InitLights()
 {
 	m_dirKeyLight.ambient = { 0.16f, 0.18f, 0.18f, 1.f };
@@ -200,8 +255,6 @@ void ShadowDemoApp::OnResized()
 	//update the projection matrix with the new aspect ratio
 	m_camera.SetPerspectiveProjection(math::ToRadians(45.f), AspectRatio(), 1.f, 1000.f);
 }
-
-
 void ShadowDemoApp::OnWheelScroll(input::ScrollStatus scroll)
 {
 	// move forward/backward when the wheel is used
@@ -213,8 +266,6 @@ void ShadowDemoApp::OnWheelScroll(input::ScrollStatus scroll)
 		m_camera.TranslatePivotBy(forwardMovement);
 	}
 }
-
-
 void ShadowDemoApp::OnMouseMove(const DirectX::XMINT2& movement, const DirectX::XMINT2& currentPos)
 {
 	XTEST_UNUSED_VAR(currentPos);
@@ -243,8 +294,6 @@ void ShadowDemoApp::OnMouseMove(const DirectX::XMINT2& movement, const DirectX::
 	}
 
 }
-
-
 void ShadowDemoApp::OnKeyStatusChange(input::Key key, const input::KeyStatus& status)
 {
 
@@ -273,7 +322,6 @@ void ShadowDemoApp::OnKeyStatusChange(input::Key key, const input::KeyStatus& st
 		m_stopLights = !m_stopLights;
 	}
 }
-
 
 void ShadowDemoApp::UpdateScene(float deltaSeconds)
 {
@@ -304,6 +352,34 @@ void ShadowDemoApp::UpdateScene(float deltaSeconds)
 		data.eyePosW = m_camera.GetPosition();
 
 		m_renderPass.GetPixelShader()->GetConstantBuffer(CBufferFrequency::per_frame)->UpdateBuffer(data);
+
+		
+	
+
+		// SHADOW MATRIX
+		XMVECTOR lightDir = XMLoadFloat3(&m_dirKeyLight.dirW);
+		XMVECTOR lightPos = -2.0f * m_bSphere.GetRadius() * lightDir;
+		XMVECTOR targetPos = XMLoadFloat3(&m_bSphere.Center);
+		XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+		XMMATRIX VL = XMMatrixLookAtLH(lightPos, targetPos, up);
+
+		XMFLOAT3 bSpherePosLS;
+		XMStoreFloat3(&bSpherePosLS, XMVector3TransformCoord(targetPos, VL));
+
+		XMMATRIX WVPT = XMMatrixOrthographicOffCenterLH(
+			bSpherePosLS.x - m_bSphere.GetRadius(),
+			bSpherePosLS.x + m_bSphere.GetRadius(),
+			bSpherePosLS.y - m_bSphere.GetRadius(),
+			bSpherePosLS.y + m_bSphere.GetRadius(),
+			bSpherePosLS.z - m_bSphere.GetRadius(),
+			bSpherePosLS.z + m_bSphere.GetRadius()
+		);
+
+		PerFrameData shadow_data;
+		XMStoreFloat4x4(&shadow_data.WVPT_shadowMap, WVPT);
+
+		m_shadow_renderPass.GetVertexShader()->GetConstantBuffer(CBufferFrequency::per_frame)->UpdateBuffer(shadow_data);
 	}
 
 
@@ -313,26 +389,20 @@ void ShadowDemoApp::UpdateScene(float deltaSeconds)
 		m_renderPass.GetPixelShader()->GetConstantBuffer(CBufferFrequency::rarely_changed)->UpdateBuffer(m_lightingControls);
 		m_isLightingControlsDirty = false;
 	}
-
 }
 
 void ShadowDemoApp::RenderShadow()
 {
-	mViewport.TopLeftX = 0.0f;
-	mViewport.TopLeftY = 0.0f;
-	mViewport.Width = shadow_map_width;
-	mViewport.Height = shadow_map_height;
-	mViewport.MinDepth = 0.0f;
-	mViewport.MaxDepth = 1.0f;
+	m_d3dAnnotation->BeginEvent(L"render-scene");
 
-	service::Locator::GetD3DContext()->PSSetShader(nullptr, nullptr, 0);
-	service::Locator::GetD3DContext()->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+	m_shadow_renderPass.Bind();
 
-	m_d3dAnnotation->BeginEvent(L"render-shadow");
+	m_d3dContext->RSSetViewports(1, &m_shadow_map_viewport);
 
-	m_renderPass.Bind();
-	m_renderPass.GetState()->ClearDepthOnly();
-	m_renderPass.GetState()->ClearRenderTarget(DirectX::Colors::DarkGray);
+	m_shadow_renderPass.GetState()->ClearDepthOnly();
+	
+	
+
 
 	// draw objects
 	for (render::Renderable& renderable : m_objects)
@@ -340,26 +410,27 @@ void ShadowDemoApp::RenderShadow()
 		for (const std::string& meshName : renderable.GetMeshNames())
 		{
 			PerObjectData data = ToPerObjectData(renderable, meshName);
-			m_renderPass.GetVertexShader()->GetConstantBuffer(CBufferFrequency::per_object)->UpdateBuffer(data);
+			m_shadow_renderPass.GetVertexShader()->GetConstantBuffer(CBufferFrequency::per_object)->UpdateBuffer(data);
 			renderable.Draw(meshName);
 		}
 	}
 
-
-	XTEST_D3D_CHECK(m_swapChain->Present(0, 0));
+	//XTEST_D3D_CHECK(m_swapChain->Present(0, 0));
 
 	m_d3dAnnotation->EndEvent();
 }
 
 void ShadowDemoApp::RenderScene()
 {
-	m_d3dAnnotation->BeginEvent(L"render-scene");
+	RenderShadow();
 
+	m_d3dAnnotation->BeginEvent(L"render-scene");
 
 	m_renderPass.Bind();
 	m_renderPass.GetState()->ClearDepthOnly();
 	m_renderPass.GetState()->ClearRenderTarget(DirectX::Colors::DarkGray);
 
+	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::shadow_map, m_shaderView.Get());
 
 	// draw objects
 	for (render::Renderable& renderable : m_objects)
@@ -372,6 +443,8 @@ void ShadowDemoApp::RenderScene()
 			m_renderPass.GetPixelShader()->BindTexture(TextureUsage::color, renderable.GetTextureView(TextureUsage::color, meshName));
 			m_renderPass.GetPixelShader()->BindTexture(TextureUsage::normal, renderable.GetTextureView(TextureUsage::normal, meshName));
 			m_renderPass.GetPixelShader()->BindTexture(TextureUsage::glossiness, renderable.GetTextureView(TextureUsage::glossiness, meshName));
+
+			
 			renderable.Draw(meshName);
 		}
 	}
@@ -382,7 +455,6 @@ void ShadowDemoApp::RenderScene()
 	m_d3dAnnotation->EndEvent();
 }
 
-
 ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Renderable& renderable, const std::string& meshName) const
 {
 	PerObjectData data;
@@ -392,7 +464,6 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 	XMMATRIX V = m_camera.GetViewMatrix();
 	XMMATRIX P = m_camera.GetProjectionMatrix();
 	XMMATRIX WVP = W * V * P;
-
 
 	// SHADOW MATRIX
 	XMVECTOR lightDir = XMLoadFloat3(&m_dirKeyLight.dirW);
@@ -419,11 +490,15 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 	XMStoreFloat4x4(&data.WVP, XMMatrixTranspose(WVP));
 	XMStoreFloat4x4(&data.W_inverseTraspose, XMMatrixInverse(nullptr, W));
 	XMStoreFloat4x4(&data.TexcoordMatrix, XMMatrixTranspose(T));
-	XMStoreFloat4x4(&data.WVPT_shadowMap, WVPT);
+	XMStoreFloat4x4(&data.WVPT_shadowMap, XMMatrixTranspose(WVPT));
 
 	data.material.ambient = renderable.GetMaterial(meshName).ambient;
 	data.material.diffuse = renderable.GetMaterial(meshName).diffuse;
 	data.material.specular = renderable.GetMaterial(meshName).specular;
+
+
+
+
 
 	return data;
 }

@@ -81,6 +81,7 @@ namespace xtest {
 				DirectionalLight dirLights[k_dirLightCount];
 				PointLight pointLights[k_pointLightCount];
 				DirectX::XMFLOAT3 eyePosW;
+				DirectX::XMFLOAT4X4 WVPT_shadowMap;
 				float _explicit_pad_;
 			};
 
@@ -109,13 +110,15 @@ namespace xtest {
 			virtual void OnWheelScroll(input::ScrollStatus scroll) override;
 			virtual void OnMouseMove(const DirectX::XMINT2& movement, const DirectX::XMINT2& currentPos) override;
 			virtual void OnKeyStatusChange(input::Key key, const input::KeyStatus& status) override;
+			
 
 		private:
 
+			void InitShadowMap();
 			void InitRenderTechnique();
 			void InitRenderables();
 			void InitLights();
-			
+		
 			PerObjectData ToPerObjectData(const render::Renderable& renderable, const std::string& meshName) const;
 
 			DirectionalLight m_dirKeyLight;
@@ -125,20 +128,15 @@ namespace xtest {
 			bool m_isLightingControlsDirty;
 			bool m_stopLights;
 
-			D3D11_VIEWPORT mViewport;
-
-			BoundingSphere m_bSphere;
-
-			UINT shadow_map_width = 2048;
-			UINT shadow_map_height = 2048;
-
 			camera::SphericalCamera m_camera;
 			std::vector<render::Renderable> m_objects;
-
-
-			render::shading::RenderPass m_shadow_renderPass;
 			render::shading::RenderPass m_renderPass;
 
+			//SHADOW MAPPING
+			BoundingSphere m_bSphere;
+			render::shading::RenderPass m_shadow_renderPass;
+		
+			
 		};
 
 	} // demo
