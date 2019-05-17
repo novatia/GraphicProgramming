@@ -216,7 +216,15 @@ void ShadowDemoApp::InitRenderables()
 			}
 		}
 	}
+
+
+
+	render::Renderable gdc_female{ *(service::Locator::GetResourceLoader()->LoadGPFMesh(GetRootDir().append(LR"(\3d-objects\gdc_female\gdc_female_posed.gpf)"))) };
+	gdc_female.SetTransform(XMMatrixTranslation(3, 0.f, 1));
+	gdc_female.Init();
+	m_objects.push_back(std::move(gdc_female));
 }
+
 void ShadowDemoApp::InitLights()
 {
 	m_dirKeyLight.ambient = { 0.16f, 0.18f, 0.18f, 1.f };
