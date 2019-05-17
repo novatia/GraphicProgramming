@@ -31,9 +31,9 @@ namespace shading {
 			rasterizerDesc.CullMode = D3D11_CULL_BACK;
 			rasterizerDesc.FrontCounterClockwise = false;
 			rasterizerDesc.DepthClipEnable = true;
-			rasterizerDesc.DepthBias = 18000;
+			rasterizerDesc.DepthBias = 10;
 			rasterizerDesc.SlopeScaledDepthBias = 1.5f;
-			rasterizerDesc.DepthBiasClamp = 0.02f;
+			rasterizerDesc.DepthBiasClamp = 0.01f;
 			XTEST_D3D_CHECK(service::Locator::GetD3DDevice()->CreateRasterizerState(&rasterizerDesc, &m_d3dRasterizerState));
 		}
 	};

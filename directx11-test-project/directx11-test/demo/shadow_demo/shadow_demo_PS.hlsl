@@ -223,7 +223,7 @@ void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 no
 	CalculateDiffuseAndSpecular(toLightW, normalW, toEyeW, mat.diffuse, mat.specular, light.diffuse, light.specular, glossSample, diffuse, specular);
 	ApplyAttenuation(light.attenuation, distance, spot, ambient, diffuse, specular);
 }
-static const float SMAP_SIZE = 4096.0f;
+static const float SMAP_SIZE = 8192.0f;
 static const float SMAP_DX = 1.0f / SMAP_SIZE;
 
 float PCRKernelShadowFactor(SamplerComparisonState shadowSampler, Texture2D shadowMap,	float4 shadowPosH)

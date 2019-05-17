@@ -52,8 +52,8 @@ namespace application {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_depthBuffer;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_depthBufferView;
 
-		UINT m_shadow_map_width = 4096;
-		UINT m_shadow_map_height = 4096;
+		UINT m_shadow_map_width = 8192;
+		UINT m_shadow_map_height = 8192;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_shadow_map_depthBufferView;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shaderView;
