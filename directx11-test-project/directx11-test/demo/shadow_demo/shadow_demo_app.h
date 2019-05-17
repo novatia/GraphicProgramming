@@ -29,7 +29,7 @@ namespace xtest {
 			struct BoundingSphere
 			{
 				DirectX::XMFLOAT3 Center = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-				float Radius = 100.0f;
+				float Radius = 15.0f;
 				
 				const float GetRadius() const {
 					return Radius;
@@ -81,7 +81,6 @@ namespace xtest {
 				DirectionalLight dirLights[k_dirLightCount];
 				PointLight pointLights[k_pointLightCount];
 				DirectX::XMFLOAT3 eyePosW;
-				DirectX::XMFLOAT4X4 WVPT_shadowMap;
 				float _explicit_pad_;
 			};
 

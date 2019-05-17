@@ -352,34 +352,6 @@ void ShadowDemoApp::UpdateScene(float deltaSeconds)
 		data.eyePosW = m_camera.GetPosition();
 
 		m_renderPass.GetPixelShader()->GetConstantBuffer(CBufferFrequency::per_frame)->UpdateBuffer(data);
-
-		
-	
-
-		// SHADOW MATRIX
-		XMVECTOR lightDir = XMLoadFloat3(&m_dirKeyLight.dirW);
-		XMVECTOR lightPos = -2.0f * m_bSphere.GetRadius() * lightDir;
-		XMVECTOR targetPos = XMLoadFloat3(&m_bSphere.Center);
-		XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-		XMMATRIX VL = XMMatrixLookAtLH(lightPos, targetPos, up);
-
-		XMFLOAT3 bSpherePosLS;
-		XMStoreFloat3(&bSpherePosLS, XMVector3TransformCoord(targetPos, VL));
-
-		XMMATRIX WVPT = XMMatrixOrthographicOffCenterLH(
-			bSpherePosLS.x - m_bSphere.GetRadius(),
-			bSpherePosLS.x + m_bSphere.GetRadius(),
-			bSpherePosLS.y - m_bSphere.GetRadius(),
-			bSpherePosLS.y + m_bSphere.GetRadius(),
-			bSpherePosLS.z - m_bSphere.GetRadius(),
-			bSpherePosLS.z + m_bSphere.GetRadius()
-		);
-
-		PerFrameData shadow_data;
-		XMStoreFloat4x4(&shadow_data.WVPT_shadowMap, WVPT);
-
-		m_shadow_renderPass.GetVertexShader()->GetConstantBuffer(CBufferFrequency::per_frame)->UpdateBuffer(shadow_data);
 	}
 
 
@@ -401,9 +373,6 @@ void ShadowDemoApp::RenderShadow()
 
 	m_shadow_renderPass.GetState()->ClearDepthOnly();
 	
-	
-
-
 	// draw objects
 	for (render::Renderable& renderable : m_objects)
 	{
@@ -466,6 +435,7 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 	XMMATRIX WVP = W * V * P;
 
 	// SHADOW MATRIX
+
 	XMVECTOR lightDir = XMLoadFloat3(&m_dirKeyLight.dirW);
 	XMVECTOR lightPos = -2.0f * m_bSphere.GetRadius() * lightDir;
 	XMVECTOR targetPos = XMLoadFloat3(&m_bSphere.Center);
@@ -474,9 +444,12 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 	XMMATRIX VL = XMMatrixLookAtLH(lightPos, targetPos, up);
 
 	XMFLOAT3 bSpherePosLS;
+	bSpherePosLS.x = 0;
+	bSpherePosLS.y = 0;
+	bSpherePosLS.z = 0;
 	XMStoreFloat3(&bSpherePosLS, XMVector3TransformCoord(targetPos, VL));
 
-	XMMATRIX WVPT = XMMatrixOrthographicOffCenterLH(
+	XMMATRIX PL = XMMatrixOrthographicOffCenterLH(
 		bSpherePosLS.x - m_bSphere.GetRadius(),
 		bSpherePosLS.x + m_bSphere.GetRadius(),
 		bSpherePosLS.y - m_bSphere.GetRadius(),
@@ -485,12 +458,19 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 		bSpherePosLS.z + m_bSphere.GetRadius()
 	);
 
+	XMMATRIX TL(
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f);
+
+	XMMATRIX WVPL = W * VL * PL * TL;
 
 	XMStoreFloat4x4(&data.W, XMMatrixTranspose(W));
 	XMStoreFloat4x4(&data.WVP, XMMatrixTranspose(WVP));
 	XMStoreFloat4x4(&data.W_inverseTraspose, XMMatrixInverse(nullptr, W));
 	XMStoreFloat4x4(&data.TexcoordMatrix, XMMatrixTranspose(T));
-	XMStoreFloat4x4(&data.WVPT_shadowMap, XMMatrixTranspose(WVPT));
+	XMStoreFloat4x4(&data.WVPT_shadowMap, XMMatrixTranspose(WVPL));
 
 	data.material.ambient = renderable.GetMaterial(meshName).ambient;
 	data.material.diffuse = renderable.GetMaterial(meshName).diffuse;

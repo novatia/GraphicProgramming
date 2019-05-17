@@ -29,7 +29,7 @@ cbuffer PerObjectCB : register(b0)
 	float4x4 W_inverseTraspose;
 	float4x4 WVP;
 	float4x4 TexcoordMatrix;
-	float4   WVPT_shadowMap;
+	float4x4 WVPT_shadowMap;
 	Material material;
 };
 
