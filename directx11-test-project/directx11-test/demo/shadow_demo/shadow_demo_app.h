@@ -28,8 +28,8 @@ namespace xtest {
 		public:
 			struct BoundingSphere
 			{
-				DirectX::XMFLOAT3 Center = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-				float Radius = 15.0f;
+				DirectX::XMFLOAT3 Center = DirectX::XMFLOAT3(3.f, 0.f, 3.f);
+				float Radius = 30.0f;
 				
 				const float GetRadius() const {
 					return Radius;
@@ -69,6 +69,7 @@ namespace xtest {
 				DirectX::XMFLOAT4X4 W_inverseTraspose;
 				DirectX::XMFLOAT4X4 WVP;
 				DirectX::XMFLOAT4X4 TexcoordMatrix;
+				DirectX::XMFLOAT4X4 WVP_shadowMap;
 				DirectX::XMFLOAT4X4 WVPT_shadowMap;
 				Material material;
 			};
@@ -82,6 +83,7 @@ namespace xtest {
 				PointLight pointLights[k_pointLightCount];
 				DirectX::XMFLOAT3 eyePosW;
 				float _explicit_pad_;
+				
 			};
 
 			struct RarelyChangedData

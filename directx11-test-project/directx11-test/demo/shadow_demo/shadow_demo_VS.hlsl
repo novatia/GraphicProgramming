@@ -29,6 +29,7 @@ cbuffer PerObjectCB : register(b0)
 	float4x4 W_inverseTraspose;
 	float4x4 WVP;
 	float4x4 TexcoordMatrix;
+	float4x4 WVP_shadowMap;
 	float4x4 WVPT_shadowMap;
 	Material material;
 };
@@ -41,10 +42,11 @@ VertexOut main(VertexIn vin)
 	vout.normalW = mul(vin.normalL, (float3x3)W_inverseTraspose);
 	vout.tangentW = mul(vin.tangentL, (float3x3)W);
 
-	vout.posH = mul(float4(vin.posL, 1.0f), WVP);
-	vout.uv = mul(float4(vin.uv, 0.f, 1.f), TexcoordMatrix).xy;
-	//shadow map coord
+	vout.posH       = mul(float4(vin.posL, 1.0f), WVP);
 	vout.shadowPosH = mul(float4(vin.posL, 1.0f), WVPT_shadowMap);
 
+	vout.uv = mul(float4(vin.uv, 0.f, 1.f), TexcoordMatrix).xy;
+	//shadow map coord
+	
 	return vout;
 }

@@ -54,6 +54,8 @@ cbuffer PerObjectCB : register(b0)
 	float4x4 W_inverseTraspose;
 	float4x4 WVP;
 	float4x4 TexcoordMatrix;
+	float4x4 WVP_shadowMap;
+	float4x4 WVPT_shadowMap;
 	Material material;
 };
 
@@ -62,6 +64,7 @@ cbuffer PerFrameCB : register(b1)
 	DirectionalLight dirLights[DIRECTIONAL_LIGHT_COUNT];
 	PointLight pointLights[POINT_LIGHT_COUNT];
 	float3 eyePosW;
+	
 };
 
 cbuffer RarelyChangedCB : register(b2)
@@ -77,7 +80,9 @@ Texture2D glossTexture : register(t2);
 Texture2D shadowMap: register(t10);
 
 SamplerState textureSampler : register(s0);
-SamplerState shadowSampler : register(s10);
+
+//SamplerState shadowSampler : register(s10);
+SamplerComparisonState shadowSampler : register(s10);
 
 
 float4 CalculateAmbient(float4 matAmbient, float4 lightAmbient)
@@ -218,6 +223,54 @@ void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 no
 	CalculateDiffuseAndSpecular(toLightW, normalW, toEyeW, mat.diffuse, mat.specular, light.diffuse, light.specular, glossSample, diffuse, specular);
 	ApplyAttenuation(light.attenuation, distance, spot, ambient, diffuse, specular);
 }
+static const float SMAP_SIZE = 4096.0f;
+static const float SMAP_DX = 1.0f / SMAP_SIZE;
+
+float PCRKernelShadowFactor(SamplerComparisonState shadowSampler, Texture2D shadowMap,	float4 shadowPosH)
+{
+	// Complete projection by doing division by w.
+	shadowPosH.xyz /= shadowPosH.w;
+	float depthNDC = shadowPosH.z;
+
+	// Texel size.
+	const float dx = SMAP_DX;
+
+	float percentLit = 0.0f;
+	const float2 offsets[9] =
+	{
+		float2(-dx,  -dx), float2(0.0f,  -dx), float2(dx,  -dx),
+		float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
+		float2(-dx,  +dx), float2(0.0f,  +dx), float2(dx,  +dx)
+	};
+
+	[unroll]
+	for (int i = 0; i < 9; ++i)
+	{
+		percentLit += shadowMap.SampleCmpLevelZero(shadowSampler, shadowPosH.xy + offsets[i], depthNDC).r;
+	}
+
+	return percentLit /= 9.0f;
+}
+
+
+float PCRShadowFactor(SamplerComparisonState shadowSampler, Texture2D shadowMap, float4 shadowPosH)
+{
+	// Complete projection by doing division by w.
+	shadowPosH.xyz /= shadowPosH.w;
+	float depthNDC = shadowPosH.z;
+
+	float shadowDepthNDC = shadowMap.SampleCmpLevelZero(shadowSampler, shadowPosH.xy, depthNDC).r;
+	return shadowDepthNDC;
+}
+/*
+float SimpleShadowFactor(SamplerComparisonState shadowSampler, Texture2D shadowMap, float4 shadowPosH)
+{
+	shadowPosH.xyz /= shadowPosH.w;
+	float depthNDC = shadowPosH.z;
+	float shadowDepthNDC = shadowMap.Sample(shadowSampler, (float2)shadowPosH.xy).r;
+
+	return shadowDepthNDC;
+}*/
 
 float4 main(VertexOut pin) : SV_TARGET
 {
@@ -230,19 +283,16 @@ float4 main(VertexOut pin) : SV_TARGET
 
 
 	//SHADOW LIT CALCULATION
-	pin.shadowPosH.xyz /= pin.shadowPosH.w;
 	float depthNDC = pin.shadowPosH.z;
-
-	float shadowDepthNDC = shadowMap.Sample(shadowSampler,pin.shadowPosH.xy).r;
-	float litFactor;
-
-	litFactor = 0.f;
+	float shadowDepthNDC = PCRKernelShadowFactor(shadowSampler, shadowMap, pin.shadowPosH);
+	
+	float litFactor = 0.0f;
 
 	[flatten]
-	if (shadowDepthNDC >= depthNDC) {
+	//if ((shadowDepthNDC+0.0008f) >= depthNDC) {
+	if ( ( shadowDepthNDC ) >= depthNDC) {
 		litFactor = 1.f;
 	}
-
 
 	// bump normal from texture
 	float3 bumpNormalW;

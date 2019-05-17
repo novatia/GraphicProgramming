@@ -127,9 +127,9 @@ void ShadowDemoApp::InitRenderTechnique()
 	pixelShader->AddConstantBuffer(CBufferFrequency::per_frame, std::make_unique<CBuffer<PerFrameData>>());
 	pixelShader->AddConstantBuffer(CBufferFrequency::rarely_changed, std::make_unique<CBuffer<RarelyChangedData>>());
 	pixelShader->AddSampler(SamplerUsage::common_textures, std::make_shared<AnisotropicSampler>());
-	pixelShader->AddSampler(SamplerUsage::shadow_map, std::make_shared<ShadowMapSampler>());
+	pixelShader->AddSampler(SamplerUsage::shadow_map, std::make_shared<PCRMapSampler>());
 
-	m_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_shadow_map_viewport, std::make_shared<SolidCullBackRS>(), m_backBufferView.Get(), m_depthBufferView.Get()));
+	m_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_viewport, std::make_shared<SolidCullBackRS>(), m_backBufferView.Get(), m_depthBufferView.Get()));
 	m_renderPass.SetVertexShader(vertexShader);
 	m_renderPass.SetPixelShader(pixelShader);
 	m_renderPass.Init();
@@ -341,6 +341,7 @@ void ShadowDemoApp::UpdateScene(float deltaSeconds)
 		XMStoreFloat3(&tmp[3], XMVector3Transform(XMLoadFloat3(&tmp[2]), XMMatrixRotationY(math::ToRadians(90.f))));
 
 
+
 		PerFrameData data;
 		data.dirLights[0] = m_dirKeyLight;
 		data.dirLights[1] = m_dirFillLight;
@@ -443,10 +444,8 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 
 	XMMATRIX VL = XMMatrixLookAtLH(lightPos, targetPos, up);
 
-	XMFLOAT3 bSpherePosLS;
-	bSpherePosLS.x = 0;
-	bSpherePosLS.y = 0;
-	bSpherePosLS.z = 0;
+	XMFLOAT3 bSpherePosLS= m_bSphere.Center;
+
 	XMStoreFloat3(&bSpherePosLS, XMVector3TransformCoord(targetPos, VL));
 
 	XMMATRIX PL = XMMatrixOrthographicOffCenterLH(
@@ -464,21 +463,19 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, 0.0f, 1.0f);
 
-	XMMATRIX WVPL = W * VL * PL * TL;
+	XMMATRIX WVPL = W * VL * PL;
+	XMMATRIX WVPTL  = W * VL * PL * TL;
 
 	XMStoreFloat4x4(&data.W, XMMatrixTranspose(W));
 	XMStoreFloat4x4(&data.WVP, XMMatrixTranspose(WVP));
 	XMStoreFloat4x4(&data.W_inverseTraspose, XMMatrixInverse(nullptr, W));
 	XMStoreFloat4x4(&data.TexcoordMatrix, XMMatrixTranspose(T));
-	XMStoreFloat4x4(&data.WVPT_shadowMap, XMMatrixTranspose(WVPL));
+	XMStoreFloat4x4(&data.WVP_shadowMap, XMMatrixTranspose(WVPL));
+	XMStoreFloat4x4(&data.WVPT_shadowMap, XMMatrixTranspose(WVPTL));
 
 	data.material.ambient = renderable.GetMaterial(meshName).ambient;
 	data.material.diffuse = renderable.GetMaterial(meshName).diffuse;
 	data.material.specular = renderable.GetMaterial(meshName).specular;
-
-
-
-
 
 	return data;
 }
