@@ -21,6 +21,7 @@ struct VertexOut
 	float3 tangentW : TANGENT;
 	float2 uv : TEXCOORD;
 	float4 shadowPosH : SHADOWPOS;
+	float4 projectorTexcoord : TEXCOORD1;
 };
 
 cbuffer PerObjectCB : register(b0)
@@ -31,6 +32,7 @@ cbuffer PerObjectCB : register(b0)
 	float4x4 TexcoordMatrix;
 	float4x4 WVP_shadowMap;
 	float4x4 WVPT_shadowMap;
+	float4x4 VPT;
 	Material material;
 };
 
@@ -46,6 +48,8 @@ VertexOut main(VertexIn vin)
 	vout.shadowPosH = mul(float4(vin.posL, 1.0f), WVPT_shadowMap);
 
 	vout.uv = mul(float4(vin.uv, 0.f, 1.f), TexcoordMatrix).xy;
+	vout.projectorTexcoord = mul(float4(vin.posL, 1.0f), VPT);
+
 	//shadow map coord
 	
 	return vout;

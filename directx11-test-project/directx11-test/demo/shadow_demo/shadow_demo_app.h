@@ -35,6 +35,20 @@ namespace xtest {
 					return Radius;
 				}
 			};
+
+			struct ProjectorLight 
+			{
+				DirectX::XMFLOAT3 pLightPosW;
+				DirectX::XMFLOAT3 pTargetPosW;
+
+				Microsoft::WRL::ComPtr<ID3D11Resource> projectorTexture;
+				Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_projectorView;
+				float Radius = 1.0f;
+
+				const float GetRadius() const {
+					return Radius;
+				}
+			};
 			
 			struct DirectionalLight
 			{
@@ -71,6 +85,7 @@ namespace xtest {
 				DirectX::XMFLOAT4X4 TexcoordMatrix;
 				DirectX::XMFLOAT4X4 WVP_shadowMap;
 				DirectX::XMFLOAT4X4 WVPT_shadowMap;
+				DirectX::XMFLOAT4X4 VPT;
 				Material material;
 			};
 
@@ -83,7 +98,6 @@ namespace xtest {
 				PointLight pointLights[k_pointLightCount];
 				DirectX::XMFLOAT3 eyePosW;
 				float _explicit_pad_;
-				
 			};
 
 			struct RarelyChangedData
@@ -136,7 +150,7 @@ namespace xtest {
 			//SHADOW MAPPING
 			BoundingSphere m_bSphere;
 			render::shading::RenderPass m_shadow_renderPass;
-		
+			ProjectorLight pLight;
 			
 		};
 

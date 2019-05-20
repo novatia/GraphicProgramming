@@ -32,7 +32,6 @@ ShadowDemoApp::ShadowDemoApp(HINSTANCE instance,
 	, m_renderPass()
 {}
 
-
 ShadowDemoApp::~ShadowDemoApp()
 {}
 
@@ -111,6 +110,18 @@ void ShadowDemoApp::InitShadowMap() {
 	m_shadow_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_shadow_map_viewport, std::make_shared<SolidCullBackRS>(), nullptr, m_shadow_map_depthBufferView.Get()));
 	m_shadow_renderPass.SetVertexShader(shadowVertexShader);
 	m_shadow_renderPass.Init();
+
+		
+	D3D11_SHADER_RESOURCE_VIEW_DESC projectorViewDesc;
+	ZeroMemory(&projectorViewDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+
+	projectorViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	projectorViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	projectorViewDesc.Texture2D.MipLevels = 1;
+	projectorViewDesc.Texture2D.MostDetailedMip = 0;
+	
+
+	pLight.m_projectorView = service::Locator::GetResourceLoader()->LoadTexture(GetRootDir().append(L"\\3d-objects\\projector\\flashlight_1.png")).d3dShaderView;
 }
 
 
@@ -201,7 +212,7 @@ void ShadowDemoApp::InitRenderables()
 				mat.glossMap = GetRootDir().append(std::wstring(textureBase[textureIndex]).append(L"gloss.png"));
 
 
-				render::Renderable sphere(mesh::GenerateSphere(1.f, 40, 40), mat);
+				render::Renderable sphere(mesh::GenerateSphere(1.f, 120, 120), mat);
 				sphere.SetTransform(XMMatrixTranslation(xPos, 2.5f, zPos));
 				sphere.SetTexcoordTransform(XMMatrixScaling(2.f, 2.f, 2.f));
 				sphere.Init();
@@ -245,10 +256,12 @@ void ShadowDemoApp::InitLights()
 	m_pointLight.range = 20.f;
 	m_pointLight.attenuation = { 0.0f, 0.2f, 0.f };
 
-
 	m_lightingControls.useDirLight = true;
 	m_lightingControls.usePointLight = true;
 	m_lightingControls.useBumpMap = true;
+
+	pLight.pLightPosW = XMFLOAT3 ( 3, 1, 3 );
+	pLight.pTargetPosW = XMFLOAT3( 5, 0, 5 );
 }
 
 void ShadowDemoApp::OnResized()
@@ -300,8 +313,9 @@ void ShadowDemoApp::OnMouseMove(const DirectX::XMINT2& movement, const DirectX::
 		XMStoreFloat3(&panTranslation, XMVectorAdd(xPanTranslation, yPanTranslation));
 		m_camera.TranslatePivotBy(panTranslation);
 	}
-
 }
+
+
 void ShadowDemoApp::OnKeyStatusChange(input::Key key, const input::KeyStatus& status)
 {
 
@@ -333,7 +347,6 @@ void ShadowDemoApp::OnKeyStatusChange(input::Key key, const input::KeyStatus& st
 
 void ShadowDemoApp::UpdateScene(float deltaSeconds)
 {
-
 	// PerFrameCB
 	{
 		if (!m_stopLights)
@@ -348,8 +361,6 @@ void ShadowDemoApp::UpdateScene(float deltaSeconds)
 		XMStoreFloat3(&tmp[2], XMVector3Transform(XMLoadFloat3(&tmp[1]), XMMatrixRotationY(math::ToRadians(90.f))));
 		XMStoreFloat3(&tmp[3], XMVector3Transform(XMLoadFloat3(&tmp[2]), XMMatrixRotationY(math::ToRadians(90.f))));
 
-
-
 		PerFrameData data;
 		data.dirLights[0] = m_dirKeyLight;
 		data.dirLights[1] = m_dirFillLight;
@@ -362,7 +373,6 @@ void ShadowDemoApp::UpdateScene(float deltaSeconds)
 
 		m_renderPass.GetPixelShader()->GetConstantBuffer(CBufferFrequency::per_frame)->UpdateBuffer(data);
 	}
-
 
 	// RarelyChangedCB
 	if (m_isLightingControlsDirty)
@@ -409,6 +419,7 @@ void ShadowDemoApp::RenderScene()
 	m_renderPass.GetState()->ClearRenderTarget(DirectX::Colors::DarkGray);
 
 	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::shadow_map, m_shaderView.Get());
+	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::projector, pLight.m_projectorView.Get());
 
 	// draw objects
 	for (render::Renderable& renderable : m_objects)
@@ -474,12 +485,31 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 	XMMATRIX WVPL = W * VL * PL;
 	XMMATRIX WVPTL  = W * VL * PL * TL;
 
+
+	//PROJECTION TEXTURE
+	XMVECTOR pLightPos = XMLoadFloat3( &pLight.pLightPosW );
+	XMVECTOR pTargetPos = XMLoadFloat3(&pLight.pTargetPosW);
+	XMMATRIX VP = XMMatrixLookAtLH(pLightPos, pTargetPos, up);
+
+	XMMATRIX PP = XMMatrixOrthographicOffCenterLH(
+		pLight.pTargetPosW.x - pLight.GetRadius(),
+		pLight.pTargetPosW.x + pLight.GetRadius(),
+		pLight.pTargetPosW.y - pLight.GetRadius(),
+		pLight.pTargetPosW.y + pLight.GetRadius(),
+		pLight.pTargetPosW.z - pLight.GetRadius(),
+		pLight.pTargetPosW.z + pLight.GetRadius()
+	);
+
+
+	XMMATRIX VPT = VP * PP * TL;
+
 	XMStoreFloat4x4(&data.W, XMMatrixTranspose(W));
 	XMStoreFloat4x4(&data.WVP, XMMatrixTranspose(WVP));
 	XMStoreFloat4x4(&data.W_inverseTraspose, XMMatrixInverse(nullptr, W));
 	XMStoreFloat4x4(&data.TexcoordMatrix, XMMatrixTranspose(T));
 	XMStoreFloat4x4(&data.WVP_shadowMap, XMMatrixTranspose(WVPL));
 	XMStoreFloat4x4(&data.WVPT_shadowMap, XMMatrixTranspose(WVPTL));
+	XMStoreFloat4x4(&data.VPT, XMMatrixTranspose(VPT));
 
 	data.material.ambient = renderable.GetMaterial(meshName).ambient;
 	data.material.diffuse = renderable.GetMaterial(meshName).diffuse;
