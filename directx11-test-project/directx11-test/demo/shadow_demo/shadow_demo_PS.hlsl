@@ -46,7 +46,7 @@ struct VertexOut
 	float3 tangentW : TANGENT;
 	float2 uv : TEXCOORD;
 	float4 shadowPosH : SHADOWPOS;
-	float4 projectorTexcoord : TEXCOORD1;
+	float4 projectorPosH : SHADOWPOS;
 };
 
 cbuffer PerObjectCB : register(b0)
@@ -55,9 +55,13 @@ cbuffer PerObjectCB : register(b0)
 	float4x4 W_inverseTraspose;
 	float4x4 WVP;
 	float4x4 TexcoordMatrix;
-	float4x4 WVP_shadowMap;
-	float4x4 WVPT_shadowMap;
-	float4x4 VPT;
+
+	float4x4 WVP_shadowMap; //used VS
+	float4x4 WVPT_shadowMap; // used in PS
+
+	float4x4 WVP_projectorMap; //used VS
+	float4x4 WVPT_projectorMap; // projector used PS
+
 	Material material;
 };
 
@@ -81,13 +85,7 @@ Texture2D normalTexture    : register(t1);
 Texture2D glossTexture     : register(t2);
 Texture2D projectorTexture : register(t3);
 
-Texture2D shadowMap: register(t10);
-
 SamplerState textureSampler : register(s0);
-
-//SamplerState shadowSampler : register(s10);
-SamplerComparisonState shadowSampler : register(s10);
-
 
 float4 CalculateAmbient(float4 matAmbient, float4 lightAmbient)
 {
@@ -227,8 +225,18 @@ void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 no
 	CalculateDiffuseAndSpecular(toLightW, normalW, toEyeW, mat.diffuse, mat.specular, light.diffuse, light.specular, glossSample, diffuse, specular);
 	ApplyAttenuation(light.attenuation, distance, spot, ambient, diffuse, specular);
 }
+
+
+
+
 static const float SMAP_SIZE = 8192.0f;
-static const float SMAP_DX = 2.0f / SMAP_SIZE;
+static const float SMAP_DX = 1.0f / SMAP_SIZE;
+
+SamplerComparisonState shadowSampler : register(s10);
+SamplerState simpleSampler : register(s11);
+
+Texture2D shadowMap: register(t10);
+Texture2D projectorMap: register(t11);
 
 float PCRKernelShadowFactor(SamplerComparisonState shadowSampler, Texture2D shadowMap,	float4 shadowPosH)
 {
@@ -240,6 +248,7 @@ float PCRKernelShadowFactor(SamplerComparisonState shadowSampler, Texture2D shad
 	const float dx = SMAP_DX;
 
 	float percentLit = 0.0f;
+
 	const float2 offsets[9] =
 	{
 		float2(-dx,  -dx), float2(0.0f,  -dx), float2(dx,  -dx),
@@ -256,28 +265,9 @@ float PCRKernelShadowFactor(SamplerComparisonState shadowSampler, Texture2D shad
 	return percentLit /= 9.0f;
 }
 
-
-float PCRShadowFactor(SamplerComparisonState shadowSampler, Texture2D shadowMap, float4 shadowPosH)
-{
-	// Complete projection by doing division by w.
-	shadowPosH.xyz /= shadowPosH.w;
-	float depthNDC = shadowPosH.z;
-
-	float shadowDepthNDC = shadowMap.SampleCmpLevelZero(shadowSampler, shadowPosH.xy, depthNDC).r;
-	return shadowDepthNDC;
+float ProjectorFactor(SamplerState shadowSampler, Texture2D projectorMap, float4 projectorPosH) {
+	return 1;
 }
-
-
-
-/*
-float SimpleShadowFactor(SamplerComparisonState shadowSampler, Texture2D shadowMap, float4 shadowPosH)
-{
-	shadowPosH.xyz /= shadowPosH.w;
-	float depthNDC = shadowPosH.z;
-	float shadowDepthNDC = shadowMap.Sample(shadowSampler, (float2)shadowPosH.xy).r;
-
-	return shadowDepthNDC;
-}*/
 
 float4 main(VertexOut pin) : SV_TARGET
 {
@@ -290,29 +280,15 @@ float4 main(VertexOut pin) : SV_TARGET
 
 
 	//PROJECTOR
-	float c_factor;
-
-	pin.projectorTexcoord.xyz /= pin.projectorTexcoord.w;
-	
-	float depth = pin.projectorTexcoord.z;
-	//float4 c = projectorTexture.Sample(shadowSampler, pin.projectorTexcoord.xy);
-	float4 c = projectorTexture.SampleCmpLevelZero(shadowSampler, pin.projectorTexcoord.xy, depth).r;
+	float pfactor = ProjectorFactor(simpleSampler, projectorMap,pin.projectorPosH);
 	
 
 	//SHADOW LIT CALCULATION
-	float depthNDC = pin.shadowPosH.z;
-	float shadowDepthNDC = PCRKernelShadowFactor(shadowSampler, shadowMap, pin.shadowPosH);
-	
-	float litFactor = 0.0f;
-
-	[flatten]
-	//if ((shadowDepthNDC+0.0008f) >= depthNDC) {
-	if ( ( shadowDepthNDC ) >= depthNDC) {
-		litFactor = 1.f;
-	}
+	float litFactor = PCRKernelShadowFactor(shadowSampler, shadowMap, pin.shadowPosH);
 
 	// bump normal from texture
 	float3 bumpNormalW;
+
 
 	if (useBumpMap)
 	{
@@ -342,12 +318,24 @@ float4 main(VertexOut pin) : SV_TARGET
 		for (uint i = 0; i < DIRECTIONAL_LIGHT_COUNT; i++)
 		{
 			DirectionalLightContribution(material, dirLights[i], bumpNormalW, toEyeW, glossSample, ambient, diffuse, specular);
-			totalAmbient += ambient;
-			totalDiffuse += diffuse * litFactor;
-			totalSpecular += specular * litFactor;
+			totalAmbient  += ambient;
+
+			[flatten]
+			if (i == 0) {
+				//CAST SHADOW ONLY FOR FIRST LIGHT
+				totalDiffuse += diffuse * litFactor;
+				totalSpecular += specular * litFactor;
+			}
+			else if (i == 1) {
+				//Ambient
+				totalDiffuse += diffuse ;
+				totalSpecular += specular ;
+			} if (i == 2) {
+				//projector
+
+			}
 		}
 	}
-
 
 	if (usePointLight)
 	{
@@ -362,10 +350,9 @@ float4 main(VertexOut pin) : SV_TARGET
 	}
 
 	float4 diffuseColor = diffuseTexture.Sample(textureSampler, pin.uv);
-	float4 finalColor = c  * diffuseColor * (totalAmbient + totalDiffuse) + totalSpecular;
+	float4 finalColor   = diffuseColor * (totalAmbient + totalDiffuse) + totalSpecular;
 
 	finalColor.a = diffuseColor.a * totalDiffuse.a;
 
 	return finalColor;
-
 }

@@ -54,32 +54,40 @@ void ShadowDemoApp::Init()
 
 void ShadowDemoApp::InitShadowMap() {
 	file::ResourceLoader* loader = service::Locator::GetResourceLoader();
+	
+	const xtest::file::BinaryFile* vsData = loader->LoadBinaryFile(GetRootDir().append(L"\\shadow_map_VS.cso"));
+	std::shared_ptr<VertexShader> shadowVertexShader = std::make_shared<VertexShader>(vsData);
+	shadowVertexShader->SetVertexInput(std::make_shared<ShadowMapVertexInput>());
+	shadowVertexShader->AddConstantBuffer(CBufferFrequency::per_object, std::make_unique<CBuffer<PerObjectData>>());
 
-	D3D11_TEXTURE2D_DESC texDesc;
-	ZeroMemory(&texDesc, sizeof(D3D11_TEXTURE2D_DESC));
 
-	texDesc.Width = m_shadow_map_width;
-	texDesc.Height = m_shadow_map_height;
-	texDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-	texDesc.SampleDesc.Count = 1;
-	texDesc.SampleDesc.Quality = 0;
-	texDesc.Usage = D3D11_USAGE_DEFAULT;
-	texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-	texDesc.CPUAccessFlags = 0;
-	texDesc.MiscFlags = 0;
-	texDesc.MipLevels = 1;
-	texDesc.ArraySize = 1;
+	const xtest::file::BinaryFile* projectorVsData = loader->LoadBinaryFile(GetRootDir().append(L"\\shadow_map_VS.cso"));
+	std::shared_ptr<VertexShader> projectorVertexShader = std::make_shared<VertexShader>(projectorVsData);
+	projectorVertexShader->SetVertexInput(std::make_shared<ShadowMapVertexInput>());
+	projectorVertexShader->AddConstantBuffer(CBufferFrequency::per_object, std::make_unique<CBuffer<PerObjectData>>());
 
-	XTEST_D3D_CHECK(m_d3dDevice->CreateTexture2D(&texDesc, 0, &texture));
+
+	D3D11_TEXTURE2D_DESC depthTextureDesc;
+	ZeroMemory(&depthTextureDesc, sizeof(D3D11_TEXTURE2D_DESC));
+
+	depthTextureDesc.Width = m_shadow_map_width;
+	depthTextureDesc.Height = m_shadow_map_height;
+	depthTextureDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+	depthTextureDesc.SampleDesc.Count = 1;
+	depthTextureDesc.SampleDesc.Quality = 0;
+	depthTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+	depthTextureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	depthTextureDesc.CPUAccessFlags = 0;
+	depthTextureDesc.MiscFlags		= 0;
+	depthTextureDesc.MipLevels		= 1;
+	depthTextureDesc.ArraySize		= 1;
+
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 	depthStencilViewDesc.Flags = 0;
 	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Texture2D.MipSlice = 0;
-
-	XTEST_D3D_CHECK(m_d3dDevice->CreateDepthStencilView(texture.Get(), &depthStencilViewDesc, &m_shadow_map_depthBufferView));
-
 
 	D3D11_SHADER_RESOURCE_VIEW_DESC shaderViewDesc;
 	ZeroMemory(&shaderViewDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
@@ -89,39 +97,52 @@ void ShadowDemoApp::InitShadowMap() {
 	shaderViewDesc.Texture2D.MipLevels = 1;
 	shaderViewDesc.Texture2D.MostDetailedMip = 0;
 
-	XTEST_D3D_CHECK(m_d3dDevice->CreateShaderResourceView(texture.Get(), &shaderViewDesc, &m_shaderView));
-	
-	m_shadow_map_viewport.TopLeftX = 0.0f;
-	m_shadow_map_viewport.TopLeftY = 0.0f;
-	m_shadow_map_viewport.Width = static_cast<float>(m_shadow_map_width);
-	m_shadow_map_viewport.Height = static_cast<float>(m_shadow_map_height);
-	m_shadow_map_viewport.MinDepth = 0.0f;
-	m_shadow_map_viewport.MaxDepth = 1.0f;
+	{
+		//SHADOW MAP
+		XTEST_D3D_CHECK(m_d3dDevice->CreateTexture2D(&depthTextureDesc, 0, &shadowDepthTexture));
+		XTEST_D3D_CHECK(m_d3dDevice->CreateDepthStencilView(shadowDepthTexture.Get(), &depthStencilViewDesc, &m_shadow_map_depthBufferView));
+		XTEST_D3D_CHECK(m_d3dDevice->CreateShaderResourceView(shadowDepthTexture.Get(), &shaderViewDesc, &m_shadow_shaderView));
+
+		m_shadow_map_viewport.TopLeftX = 0.0f;
+		m_shadow_map_viewport.TopLeftY = 0.0f;
+		m_shadow_map_viewport.Width = static_cast<float>(m_shadow_map_width);
+		m_shadow_map_viewport.Height = static_cast<float>(m_shadow_map_height);
+		m_shadow_map_viewport.MinDepth = 0.0f;
+		m_shadow_map_viewport.MaxDepth = 1.0f;
+
+		m_shadow_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_shadow_map_viewport, std::make_shared<SolidCullBackRS>(), nullptr, m_shadow_map_depthBufferView.Get()));
+		m_shadow_renderPass.SetVertexShader(shadowVertexShader);
+		m_shadow_renderPass.Init();
+	}
+
+	{ 
+		// PROJECTOR DEPTH MAP
+		XTEST_D3D_CHECK(m_d3dDevice->CreateTexture2D(&depthTextureDesc, 0, &projectorDepthTexture));
+		XTEST_D3D_CHECK(m_d3dDevice->CreateDepthStencilView(projectorDepthTexture.Get(), &depthStencilViewDesc, &m_projector_map_depthBufferView));
+		XTEST_D3D_CHECK(m_d3dDevice->CreateShaderResourceView(projectorDepthTexture.Get(), &shaderViewDesc, &m_projector_shaderView));
+
+		m_projector_map_viewport.TopLeftX = 0.0f;
+		m_projector_map_viewport.TopLeftY = 0.0f;
+		m_projector_map_viewport.Width = static_cast<float>(m_projector_map_width);
+		m_projector_map_viewport.Height = static_cast<float>(m_projector_map_height);
+		m_projector_map_viewport.MinDepth = 0.0f;
+		m_projector_map_viewport.MaxDepth = 1.0f;
+
+		m_projector_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_projector_map_viewport, std::make_shared<SolidCullBackRS>(), nullptr, m_projector_map_depthBufferView.Get()));
+		m_projector_renderPass.SetVertexShader(projectorVertexShader);
+		m_projector_renderPass.Init();
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC projectorViewDesc;
+		ZeroMemory(&projectorViewDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+
+		projectorViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		projectorViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		projectorViewDesc.Texture2D.MipLevels = 1;
+		projectorViewDesc.Texture2D.MostDetailedMip = 0;
 
 
-	//SHADOW PASS
-	const xtest::file::BinaryFile* vsData = loader->LoadBinaryFile(GetRootDir().append(L"\\shadow_map_VS.cso"));
-
-	std::shared_ptr<VertexShader> shadowVertexShader = std::make_shared<VertexShader>(vsData);
-	shadowVertexShader->SetVertexInput(std::make_shared<ShadowMapVertexInput>());
-	shadowVertexShader->AddConstantBuffer(CBufferFrequency::per_object, std::make_unique<CBuffer<PerObjectData>>());
-
-
-	m_shadow_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_shadow_map_viewport, std::make_shared<SolidCullBackRS>(), nullptr, m_shadow_map_depthBufferView.Get()));
-	m_shadow_renderPass.SetVertexShader(shadowVertexShader);
-	m_shadow_renderPass.Init();
-
-		
-	D3D11_SHADER_RESOURCE_VIEW_DESC projectorViewDesc;
-	ZeroMemory(&projectorViewDesc, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-
-	projectorViewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	projectorViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	projectorViewDesc.Texture2D.MipLevels = 1;
-	projectorViewDesc.Texture2D.MostDetailedMip = 0;
-	
-
-	pLight.m_projectorView = service::Locator::GetResourceLoader()->LoadTexture(GetRootDir().append(L"\\3d-objects\\projector\\flashlight_1.png")).d3dShaderView;
+		pLight.m_projectorView = service::Locator::GetResourceLoader()->LoadTexture(GetRootDir().append(L"\\3d-objects\\projector\\flashlight_1.png")).d3dShaderView;
+	}
 }
 
 
@@ -166,8 +187,6 @@ void ShadowDemoApp::InitRenderables()
 		
 		m_objects.push_back(plane);
 	}
-
-
 
 	// others objects
 	std::vector<std::wstring> textureBase = {
@@ -249,6 +268,14 @@ void ShadowDemoApp::InitLights()
 	m_dirFillLight.specular = { 0.087f, 0.09f, 0.094f, 1.f };
 	XMStoreFloat3(&m_dirFillLight.dirW, XMVectorScale(dirLightDirection, -1.f));
 
+
+
+	m_dirProjLight.ambient = { 0.16f, 0.18f, 0.18f, 1.f };
+	m_dirProjLight.diffuse = { 2.f* 0.78f, 2.f* 0.83f, 2.f* 1.f, 1.f };
+	m_dirProjLight.specular = { 0.87f,  0.90f,  0.94f, 1.f };
+	dirLightDirection = XMVector3Normalize(-XMVectorSet(-5.f, 3.f, -5.f, 0.f));
+	XMStoreFloat3(&m_dirProjLight.dirW, dirLightDirection);
+
 	m_pointLight.ambient = { 0.18f, 0.04f, 0.16f, 1.0f };
 	m_pointLight.diffuse = { 0.4f* 0.87f,  0.4f*0.90f,   0.4f*0.94f, 1.f };
 	m_pointLight.specular = { 0.4f*0.87f,   0.4f*0.90f,   0.4f*0.94f, 1.f };
@@ -276,6 +303,7 @@ void ShadowDemoApp::OnResized()
 	//update the projection matrix with the new aspect ratio
 	m_camera.SetPerspectiveProjection(math::ToRadians(45.f), AspectRatio(), 1.f, 1000.f);
 }
+
 void ShadowDemoApp::OnWheelScroll(input::ScrollStatus scroll)
 {
 	// move forward/backward when the wheel is used
@@ -362,8 +390,10 @@ void ShadowDemoApp::UpdateScene(float deltaSeconds)
 		XMStoreFloat3(&tmp[3], XMVector3Transform(XMLoadFloat3(&tmp[2]), XMMatrixRotationY(math::ToRadians(90.f))));
 
 		PerFrameData data;
-		data.dirLights[0] = m_dirKeyLight;
-		data.dirLights[1] = m_dirFillLight;
+		data.dirLights[0] = m_dirKeyLight; //CAST SHADOW
+		data.dirLights[1] = m_dirFillLight; //GLOBAL 
+		data.dirLights[2] = m_dirProjLight; //CAST PROJECTOR
+
 		data.pointLights[0] = data.pointLights[1] = data.pointLights[2] = data.pointLights[3] = m_pointLight;
 		data.pointLights[0].posW = tmp[0];
 		data.pointLights[1].posW = tmp[1];
@@ -382,6 +412,31 @@ void ShadowDemoApp::UpdateScene(float deltaSeconds)
 	}
 }
 
+void ShadowDemoApp::RenderProjector()
+{
+	m_d3dAnnotation->BeginEvent(L"render-scene");
+
+	m_projector_renderPass.Bind();
+
+	m_d3dContext->RSSetViewports(1, &m_projector_map_viewport);
+
+	m_projector_renderPass.GetState()->ClearDepthOnly();
+
+	// draw objects
+	for (render::Renderable& renderable : m_objects)
+	{
+		for (const std::string& meshName : renderable.GetMeshNames())
+		{
+			PerObjectData data = ToPerObjectData(renderable, meshName);
+			m_projector_renderPass.GetVertexShader()->GetConstantBuffer(CBufferFrequency::per_object)->UpdateBuffer(data);
+			renderable.Draw(meshName);
+		}
+	}
+
+	m_d3dAnnotation->EndEvent();
+}
+
+
 void ShadowDemoApp::RenderShadow()
 {
 	m_d3dAnnotation->BeginEvent(L"render-scene");
@@ -391,7 +446,7 @@ void ShadowDemoApp::RenderShadow()
 	m_d3dContext->RSSetViewports(1, &m_shadow_map_viewport);
 
 	m_shadow_renderPass.GetState()->ClearDepthOnly();
-	
+
 	// draw objects
 	for (render::Renderable& renderable : m_objects)
 	{
@@ -403,14 +458,13 @@ void ShadowDemoApp::RenderShadow()
 		}
 	}
 
-	//XTEST_D3D_CHECK(m_swapChain->Present(0, 0));
-
 	m_d3dAnnotation->EndEvent();
 }
 
 void ShadowDemoApp::RenderScene()
 {
 	RenderShadow();
+	RenderProjector();
 
 	m_d3dAnnotation->BeginEvent(L"render-scene");
 
@@ -418,7 +472,8 @@ void ShadowDemoApp::RenderScene()
 	m_renderPass.GetState()->ClearDepthOnly();
 	m_renderPass.GetState()->ClearRenderTarget(DirectX::Colors::DarkGray);
 
-	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::shadow_map, m_shaderView.Get());
+	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::shadow_map, m_shadow_shaderView.Get());
+	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::shadow_map, m_projector_shaderView.Get());
 	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::projector, pLight.m_projectorView.Get());
 
 	// draw objects
@@ -455,19 +510,49 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 	XMMATRIX WVP = W * V * P;
 
 	// SHADOW MATRIX
+	
+		XMVECTOR lightDir = XMLoadFloat3(&m_dirKeyLight.dirW);
+		XMVECTOR lightPos = -2.0f * m_bSphere.GetRadius() * lightDir;
+		XMVECTOR targetPos = XMLoadFloat3(&m_bSphere.Center);
+		XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
-	XMVECTOR lightDir = XMLoadFloat3(&m_dirKeyLight.dirW);
-	XMVECTOR lightPos = -2.0f * m_bSphere.GetRadius() * lightDir;
-	XMVECTOR targetPos = XMLoadFloat3(&m_bSphere.Center);
-	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+		XMMATRIX VL = XMMatrixLookAtLH(lightPos, targetPos, up);
 
-	XMMATRIX VL = XMMatrixLookAtLH(lightPos, targetPos, up);
+		XMFLOAT3 bSpherePosLS = m_bSphere.Center;
 
-	XMFLOAT3 bSpherePosLS= m_bSphere.Center;
+		XMStoreFloat3(&bSpherePosLS, XMVector3TransformCoord(targetPos, VL));
 
-	XMStoreFloat3(&bSpherePosLS, XMVector3TransformCoord(targetPos, VL));
+		XMMATRIX PL = XMMatrixOrthographicOffCenterLH(
+			bSpherePosLS.x - m_bSphere.GetRadius(),
+			bSpherePosLS.x + m_bSphere.GetRadius(),
+			bSpherePosLS.y - m_bSphere.GetRadius(),
+			bSpherePosLS.y + m_bSphere.GetRadius(),
+			bSpherePosLS.z - m_bSphere.GetRadius(),
+			bSpherePosLS.z + m_bSphere.GetRadius()
+		);
 
-	XMMATRIX PL = XMMatrixOrthographicOffCenterLH(
+		XMMATRIX TL(
+			0.5f, 0.0f, 0.0f, 0.0f,
+			0.0f, -0.5f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.5f, 0.5f, 0.0f, 1.0f);
+
+	XMMATRIX WVPL = W * VL * PL;
+	XMMATRIX WVPTL  = W * VL * PL * TL;
+
+
+	//PROJECTION TEXTURE
+	XMVECTOR lightDirP = XMLoadFloat3(&m_dirProjLight.dirW);
+	XMVECTOR lightPosP = -2.0f * m_bSphere.GetRadius() * lightDirP;
+	XMVECTOR targetPosP = XMLoadFloat3(&m_bSphere.Center);
+
+	XMMATRIX VLP = XMMatrixLookAtLH(lightPosP, targetPosP, up);
+
+	bSpherePosLS = m_bSphere.Center;
+
+	XMStoreFloat3(&bSpherePosLS, XMVector3TransformCoord(targetPosP, VLP));
+
+	PL = XMMatrixOrthographicOffCenterLH(
 		bSpherePosLS.x - m_bSphere.GetRadius(),
 		bSpherePosLS.x + m_bSphere.GetRadius(),
 		bSpherePosLS.y - m_bSphere.GetRadius(),
@@ -476,32 +561,8 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 		bSpherePosLS.z + m_bSphere.GetRadius()
 	);
 
-	XMMATRIX TL(
-		0.5f, 0.0f, 0.0f, 0.0f,
-		0.0f, -0.5f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.5f, 0.5f, 0.0f, 1.0f);
-
-	XMMATRIX WVPL = W * VL * PL;
-	XMMATRIX WVPTL  = W * VL * PL * TL;
-
-
-	//PROJECTION TEXTURE
-	XMVECTOR pLightPos = XMLoadFloat3( &pLight.pLightPosW );
-	XMVECTOR pTargetPos = XMLoadFloat3(&pLight.pTargetPosW);
-	XMMATRIX VP = XMMatrixLookAtLH(pLightPos, pTargetPos, up);
-
-	XMMATRIX PP = XMMatrixOrthographicOffCenterLH(
-		pLight.pTargetPosW.x - pLight.GetRadius(),
-		pLight.pTargetPosW.x + pLight.GetRadius(),
-		pLight.pTargetPosW.y - pLight.GetRadius(),
-		pLight.pTargetPosW.y + pLight.GetRadius(),
-		pLight.pTargetPosW.z - pLight.GetRadius(),
-		pLight.pTargetPosW.z + pLight.GetRadius()
-	);
-
-
-	XMMATRIX VPT = VP * PP * TL;
+	XMMATRIX WVPLp = W * VLP * PL;
+	XMMATRIX WVPTLp = W * VLP * PL * TL;
 
 	XMStoreFloat4x4(&data.W, XMMatrixTranspose(W));
 	XMStoreFloat4x4(&data.WVP, XMMatrixTranspose(WVP));
@@ -509,7 +570,8 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 	XMStoreFloat4x4(&data.TexcoordMatrix, XMMatrixTranspose(T));
 	XMStoreFloat4x4(&data.WVP_shadowMap, XMMatrixTranspose(WVPL));
 	XMStoreFloat4x4(&data.WVPT_shadowMap, XMMatrixTranspose(WVPTL));
-	XMStoreFloat4x4(&data.VPT, XMMatrixTranspose(VPT));
+	XMStoreFloat4x4(&data.WVP_projectorMap, XMMatrixTranspose(WVPLp));
+	XMStoreFloat4x4(&data.WVPT_projectorMap, XMMatrixTranspose(WVPTLp));
 
 	data.material.ambient = renderable.GetMaterial(meshName).ambient;
 	data.material.diffuse = renderable.GetMaterial(meshName).diffuse;

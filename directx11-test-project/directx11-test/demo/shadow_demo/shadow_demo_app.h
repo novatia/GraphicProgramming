@@ -83,14 +83,18 @@ namespace xtest {
 				DirectX::XMFLOAT4X4 W_inverseTraspose;
 				DirectX::XMFLOAT4X4 WVP;
 				DirectX::XMFLOAT4X4 TexcoordMatrix;
+
 				DirectX::XMFLOAT4X4 WVP_shadowMap;
 				DirectX::XMFLOAT4X4 WVPT_shadowMap;
-				DirectX::XMFLOAT4X4 VPT;
+
+				DirectX::XMFLOAT4X4 WVP_projectorMap;
+				DirectX::XMFLOAT4X4 WVPT_projectorMap;
+
 				Material material;
 			};
 
 			static const int k_pointLightCount = 4;
-			static const int k_dirLightCount = 2;
+			static const int k_dirLightCount = 3;
 
 			struct PerFrameData
 			{
@@ -121,6 +125,7 @@ namespace xtest {
 			virtual void UpdateScene(float deltaSeconds) override;
 			virtual void RenderScene() override;
 			virtual void RenderShadow();
+			virtual void RenderProjector();
 			
 			virtual void OnWheelScroll(input::ScrollStatus scroll) override;
 			virtual void OnMouseMove(const DirectX::XMINT2& movement, const DirectX::XMINT2& currentPos) override;
@@ -138,6 +143,7 @@ namespace xtest {
 
 			DirectionalLight m_dirKeyLight;
 			DirectionalLight m_dirFillLight;
+			DirectionalLight m_dirProjLight;
 			PointLight m_pointLight;
 			RarelyChangedData m_lightingControls;
 			bool m_isLightingControlsDirty;
@@ -149,7 +155,10 @@ namespace xtest {
 
 			//SHADOW MAPPING
 			BoundingSphere m_bSphere;
+
 			render::shading::RenderPass m_shadow_renderPass;
+			render::shading::RenderPass m_projector_renderPass;
+
 			ProjectorLight pLight;
 			
 		};

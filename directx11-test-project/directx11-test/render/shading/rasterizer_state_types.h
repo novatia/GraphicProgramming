@@ -30,10 +30,12 @@ namespace shading {
 			rasterizerDesc.FillMode = D3D11_FILL_SOLID;
 			rasterizerDesc.CullMode = D3D11_CULL_BACK;
 			rasterizerDesc.FrontCounterClockwise = false;
+
 			rasterizerDesc.DepthClipEnable = true;
-			rasterizerDesc.DepthBias = 18000;
-			rasterizerDesc.SlopeScaledDepthBias = 1.5f;
+			rasterizerDesc.DepthBias = 15000;
 			rasterizerDesc.DepthBiasClamp = 0.02f;
+			rasterizerDesc.SlopeScaledDepthBias = 1.5f;
+
 			XTEST_D3D_CHECK(service::Locator::GetD3DDevice()->CreateRasterizerState(&rasterizerDesc, &m_d3dRasterizerState));
 		}
 	};

@@ -20,7 +20,7 @@ cbuffer PerObjectCB : register(b0)
 	Material material;
 };
 
-float4 main(float3 posL:POSITION ):SV_POSITION
+float4 main(float3 posL:POSITION) :SV_POSITION
 {
-	return mul(float4(posL,1), WVP_shadowMap);
+	return mul(float4(posL,1), WVP_projectorMap);
 }

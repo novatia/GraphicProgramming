@@ -381,6 +381,9 @@
     <FxCompile Include="demo\shadow_demo\shadow_demo_PS.hlsl">
       <Filter>demo\shadow_demo</Filter>
     </FxCompile>
+    <FxCompile Include="projector_map_VS.hlsl">
+      <Filter>demo\shadow_demo</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="math\math_utils.inl">
