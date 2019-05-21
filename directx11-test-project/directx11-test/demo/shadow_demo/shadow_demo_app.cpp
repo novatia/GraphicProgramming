@@ -35,7 +35,6 @@ ShadowDemoApp::ShadowDemoApp(HINSTANCE instance,
 ShadowDemoApp::~ShadowDemoApp()
 {}
 
-
 void ShadowDemoApp::Init()
 {
 	application::DirectxApp::Init();
@@ -145,7 +144,6 @@ void ShadowDemoApp::InitShadowMap() {
 	}
 }
 
-
 void ShadowDemoApp::InitRenderTechnique()
 {
 	file::ResourceLoader* loader = service::Locator::GetResourceLoader();
@@ -247,12 +245,15 @@ void ShadowDemoApp::InitRenderables()
 		}
 	}
 
-
-
 	render::Renderable gdc_female{ *(service::Locator::GetResourceLoader()->LoadGPFMesh(GetRootDir().append(LR"(\3d-objects\gdc_female\gdc_female_posed.gpf)"))) };
 	gdc_female.SetTransform(XMMatrixTranslation(3, 0.f, 1));
 	gdc_female.Init();
 	m_objects.push_back(std::move(gdc_female));
+
+	mesh::MeshMaterial mat;
+	mat.ambient = { 0.15f, 0.15f, 0.15f, 1.f };
+	mat.diffuse = { 0.1f, 0.1f, 0.1f, 1.f };
+	mat.specular = { 0.5f, 0.5f, 0.5f, 1.f };
 }
 
 void ShadowDemoApp::InitLights()
@@ -315,6 +316,7 @@ void ShadowDemoApp::OnWheelScroll(input::ScrollStatus scroll)
 		m_camera.TranslatePivotBy(forwardMovement);
 	}
 }
+
 void ShadowDemoApp::OnMouseMove(const DirectX::XMINT2& movement, const DirectX::XMINT2& currentPos)
 {
 	XTEST_UNUSED_VAR(currentPos);
@@ -342,7 +344,6 @@ void ShadowDemoApp::OnMouseMove(const DirectX::XMINT2& movement, const DirectX::
 		m_camera.TranslatePivotBy(panTranslation);
 	}
 }
-
 
 void ShadowDemoApp::OnKeyStatusChange(input::Key key, const input::KeyStatus& status)
 {
@@ -435,7 +436,6 @@ void ShadowDemoApp::RenderProjector()
 
 	m_d3dAnnotation->EndEvent();
 }
-
 
 void ShadowDemoApp::RenderShadow()
 {

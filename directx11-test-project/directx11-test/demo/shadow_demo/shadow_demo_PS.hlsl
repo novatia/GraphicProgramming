@@ -1,5 +1,5 @@
 #define POINT_LIGHT_COUNT 4
-#define DIRECTIONAL_LIGHT_COUNT 2
+#define DIRECTIONAL_LIGHT_COUNT 3
 
 struct Material
 {
@@ -147,6 +147,8 @@ void CalculateDirAndDistance(float3 pos, float3 target, out float3 dir, out floa
 
 	dir = toTarget;
 }
+
+
 float3 BumpNormalW(float2 uv, float3 normalW, float3 tangentW)
 {
 	float3 normalSample = normalTexture.Sample(textureSampler, uv).rgb;
@@ -200,6 +202,8 @@ void PointLightContribution(Material mat, PointLight light, float3 posW, float3 
 	CalculateDiffuseAndSpecular(toLightW, normalW, toEyeW, mat.diffuse, mat.specular, light.diffuse, light.specular, glossSample, diffuse, specular);
 	ApplyAttenuation(light.attenuation, distance, falloff, ambient, diffuse, specular);
 }
+
+
 void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 normalW, float3 toEyeW, float glossSample, out float4 ambient, out float4 diffuse, out float4 specular)
 {
 	// default values
@@ -225,9 +229,6 @@ void SpotLightContribution(Material mat, SpotLight light, float3 posW, float3 no
 	CalculateDiffuseAndSpecular(toLightW, normalW, toEyeW, mat.diffuse, mat.specular, light.diffuse, light.specular, glossSample, diffuse, specular);
 	ApplyAttenuation(light.attenuation, distance, spot, ambient, diffuse, specular);
 }
-
-
-
 
 static const float SMAP_SIZE = 8192.0f;
 static const float SMAP_DX = 1.0f / SMAP_SIZE;
@@ -266,7 +267,7 @@ float PCRKernelShadowFactor(SamplerComparisonState shadowSampler, Texture2D shad
 }
 
 float ProjectorFactor(SamplerState shadowSampler, Texture2D projectorMap, float4 projectorPosH) {
-	return 1;
+	return 0.0;
 }
 
 float4 main(VertexOut pin) : SV_TARGET
@@ -277,14 +278,13 @@ float4 main(VertexOut pin) : SV_TARGET
 	// after the rasterizer stage (interpolation) 
 	pin.tangentW = pin.tangentW - (dot(pin.tangentW, pin.normalW)*pin.normalW);
 	pin.tangentW = normalize(pin.tangentW);
-
-
-	//PROJECTOR
-	float pfactor = ProjectorFactor(simpleSampler, projectorMap,pin.projectorPosH);
 	
-
 	//SHADOW LIT CALCULATION
 	float litFactor = PCRKernelShadowFactor(shadowSampler, shadowMap, pin.shadowPosH);
+	
+	//PROJECTOR
+	float pfactor = ProjectorFactor ( simpleSampler, projectorMap, pin.projectorPosH );
+
 
 	// bump normal from texture
 	float3 bumpNormalW;
@@ -298,7 +298,6 @@ float4 main(VertexOut pin) : SV_TARGET
 	{
 		bumpNormalW = pin.normalW;
 	}
-
 
 	float glossSample = glossTexture.Sample(textureSampler, pin.uv).r;
 	float3 toEyeW = normalize(eyePosW - pin.posW);
@@ -332,7 +331,8 @@ float4 main(VertexOut pin) : SV_TARGET
 				totalSpecular += specular ;
 			} if (i == 2) {
 				//projector
-
+				//totalDiffuse += diffuse;
+				totalDiffuse += pfactor;
 			}
 		}
 	}

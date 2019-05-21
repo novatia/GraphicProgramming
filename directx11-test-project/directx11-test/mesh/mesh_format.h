@@ -4,7 +4,6 @@
 namespace xtest {
 namespace mesh {
 
-
 	struct MeshData
 	{
 		struct Vertex

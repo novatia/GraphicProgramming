@@ -131,7 +131,6 @@ namespace xtest {
 			virtual void OnMouseMove(const DirectX::XMINT2& movement, const DirectX::XMINT2& currentPos) override;
 			virtual void OnKeyStatusChange(input::Key key, const input::KeyStatus& status) override;
 			
-
 		private:
 
 			void InitShadowMap();
