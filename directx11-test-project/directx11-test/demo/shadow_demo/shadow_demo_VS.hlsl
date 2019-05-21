@@ -55,6 +55,5 @@ VertexOut main(VertexIn vin)
 	vout.uv = mul(float4(vin.uv, 0.f, 1.f), TexcoordMatrix).xy;
 	
 	//shadow map coord
-	
 	return vout;
 }

@@ -158,6 +158,7 @@ void ShadowDemoApp::InitRenderTechnique()
 	pixelShader->AddConstantBuffer(CBufferFrequency::rarely_changed, std::make_unique<CBuffer<RarelyChangedData>>());
 	pixelShader->AddSampler(SamplerUsage::common_textures, std::make_shared<AnisotropicSampler>());
 	pixelShader->AddSampler(SamplerUsage::shadow_map, std::make_shared<PCRMapSampler>());
+	pixelShader->AddSampler(SamplerUsage::projector_map, std::make_shared<ShadowMapSampler>());
 
 	m_renderPass.SetState(std::make_shared<RenderPassState>(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, m_viewport, std::make_shared<SolidCullBackRS>(), m_backBufferView.Get(), m_depthBufferView.Get()));
 	m_renderPass.SetVertexShader(vertexShader);
@@ -271,10 +272,11 @@ void ShadowDemoApp::InitLights()
 
 
 
-	m_dirProjLight.ambient = { 0.16f, 0.18f, 0.18f, 1.f };
-	m_dirProjLight.diffuse = { 2.f* 0.78f, 2.f* 0.83f, 2.f* 1.f, 1.f };
+	m_dirProjLight.ambient  = { 0.16f, 0.18f, 0.18f, 1.f };
+	m_dirProjLight.diffuse  = { 2.f* 0.78f, 2.f* 0.83f, 2.f* 1.f, 1.f };
 	m_dirProjLight.specular = { 0.87f,  0.90f,  0.94f, 1.f };
-	dirLightDirection = XMVector3Normalize(-XMVectorSet(-5.f, 3.f, -5.f, 0.f));
+
+	dirLightDirection = XMVector3Normalize(-XMVectorSet(-2.f, 2.f, -2.f, 0.f));
 	XMStoreFloat3(&m_dirProjLight.dirW, dirLightDirection);
 
 	m_pointLight.ambient = { 0.18f, 0.04f, 0.16f, 1.0f };
@@ -473,7 +475,7 @@ void ShadowDemoApp::RenderScene()
 	m_renderPass.GetState()->ClearRenderTarget(DirectX::Colors::DarkGray);
 
 	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::shadow_map, m_shadow_shaderView.Get());
-	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::shadow_map, m_projector_shaderView.Get());
+	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::projector_map, m_projector_shaderView.Get());
 	m_renderPass.GetPixelShader()->BindTexture(TextureUsage::projector, pLight.m_projectorView.Get());
 
 	// draw objects
@@ -540,6 +542,8 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 	XMMATRIX WVPL = W * VL * PL;
 	XMMATRIX WVPTL  = W * VL * PL * TL;
 
+	XMStoreFloat4x4(&data.WVP_shadowMap, XMMatrixTranspose(WVPL));
+	XMStoreFloat4x4(&data.WVPT_shadowMap, XMMatrixTranspose(WVPTL));
 
 	//PROJECTION TEXTURE
 	XMVECTOR lightDirP = XMLoadFloat3(&m_dirProjLight.dirW);
@@ -552,7 +556,7 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 
 	XMStoreFloat3(&bSpherePosLS, XMVector3TransformCoord(targetPosP, VLP));
 
-	PL = XMMatrixOrthographicOffCenterLH(
+	XMMATRIX PLP = XMMatrixOrthographicOffCenterLH(
 		bSpherePosLS.x - m_bSphere.GetRadius(),
 		bSpherePosLS.x + m_bSphere.GetRadius(),
 		bSpherePosLS.y - m_bSphere.GetRadius(),
@@ -561,15 +565,13 @@ ShadowDemoApp::PerObjectData ShadowDemoApp::ToPerObjectData(const render::Render
 		bSpherePosLS.z + m_bSphere.GetRadius()
 	);
 
-	XMMATRIX WVPLp = W * VLP * PL;
-	XMMATRIX WVPTLp = W * VLP * PL * TL;
+	XMMATRIX WVPLp = W * VLP * PLP;
+	XMMATRIX WVPTLp = W * VLP * PLP * TL;
 
 	XMStoreFloat4x4(&data.W, XMMatrixTranspose(W));
 	XMStoreFloat4x4(&data.WVP, XMMatrixTranspose(WVP));
 	XMStoreFloat4x4(&data.W_inverseTraspose, XMMatrixInverse(nullptr, W));
 	XMStoreFloat4x4(&data.TexcoordMatrix, XMMatrixTranspose(T));
-	XMStoreFloat4x4(&data.WVP_shadowMap, XMMatrixTranspose(WVPL));
-	XMStoreFloat4x4(&data.WVPT_shadowMap, XMMatrixTranspose(WVPTL));
 	XMStoreFloat4x4(&data.WVP_projectorMap, XMMatrixTranspose(WVPLp));
 	XMStoreFloat4x4(&data.WVPT_projectorMap, XMMatrixTranspose(WVPTLp));
 

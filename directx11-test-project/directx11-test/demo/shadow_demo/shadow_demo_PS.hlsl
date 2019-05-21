@@ -267,7 +267,15 @@ float PCRKernelShadowFactor(SamplerComparisonState shadowSampler, Texture2D shad
 }
 
 float ProjectorFactor(SamplerState shadowSampler, Texture2D projectorMap, float4 projectorPosH) {
-	return 0.0;
+	projectorPosH.xyz /= projectorPosH.w;
+	float depthNDC = projectorPosH.z;
+	float projectorLit = projectorMap.Sample(shadowSampler, projectorPosH.xy  ).r;
+
+	[flatten]
+	if (projectorLit >= depthNDC)
+		return projectorLit;
+
+	return 0;
 }
 
 float4 main(VertexOut pin) : SV_TARGET
